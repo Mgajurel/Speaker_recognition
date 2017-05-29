@@ -9,3 +9,9 @@ signal_plot(emphasized_signal, "Emphasized Signal")
 
 frames = framing_windowing(sample_rate, emphasized_signal)
 signal_plot(frames, "frames")
+
+mag_frames = mag_spectrum(frames)
+signal_plot(mag_frames,"Magnitude spectrum")
+
+pow_frames = pow_spectrum(mag_frames)
+signal_plot(pow_frames,"Power spectrum")
