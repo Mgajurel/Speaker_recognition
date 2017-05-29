@@ -46,3 +46,23 @@ def framing_windowing(sample_rate, emphasized_signal, frame_size = 0.025,frame_s
     #windowing the signal
     frames *= np.hamming(frame_length)
     return frames
+
+def mag_spectrum(frames, NFFT = 512):
+    """
+    this function provides the magnitude spectrum of the windowed and framed signal
+    :param frames:proprely windowed frames of the signal
+    :param NFFT: number of times fast fourier transform is carried output
+    :returns magnitude frames
+    """
+    mag_frames = np.absolute(np.fft.rfft(frames, NFFT))
+    return mag_frames
+
+def pow_spectrum(mag_frames, NFFT = 512):
+    """
+    this function provides the power spectrum of the magnitude spectrum
+    :param mag_frames:magnitude frames
+    :param NFFT: number of times fast fourier transform is carried output
+    :returns power frames
+    """
+    pow_frames = ((1.0 / NFFT) * ((mag_frames) ** 2))
+    return pow_frames
