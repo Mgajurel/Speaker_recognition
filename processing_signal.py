@@ -44,5 +44,5 @@ def framing_windowing(sample_rate, emphasized_signal, frame_size = 0.025,frame_s
     indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
     frames = pad_signal[indices.astype(np.int32, copy=False)]
     #windowing the signal
-    frames *= 0.54 - 0.46 * numpy.cos((2 * numpy.pi * n) / (frame_length - 1))
+    frames *= np.hamming(frame_length)
     return frames
