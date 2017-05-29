@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def pre_emphesis(signal, coeff = 0.95):
+def pre_emphasis(signal, coeff = 0.95):
     """This function reduces the noise in the input signal, it basically is a
     filter
     :param signal: signal on which the preemphesis is to be performed on
@@ -9,8 +9,8 @@ def pre_emphesis(signal, coeff = 0.95):
     and coeff=0.95 is default
     :returns the filtered signal
     """
-    emphesized_signal = np.append(signal[0],signal[1:]-coeff*signal[:-1])
-    return emphesized_signal
+    emphasized_signal = np.append(signal[0],signal[1:]-coeff*signal[:-1])
+    return emphasized_signal
 
 def signal_plot(signal, title):
     """This function plots the input signal
@@ -24,3 +24,25 @@ def signal_plot(signal, title):
     #plt.axis([0,5,-10000,10000])
     plt.plot(signal, color = 'b')
     plt.show()
+
+def framing_windowing(sample_rate, emphasized_signal, frame_size = 0.025,frame_stride = 0.01 ):
+    """ This function windows and frames the given signal
+    :param emphasized_signal: the output from the Emphasis filter i.e. outout from function pre_emphasis
+    :param frame_size:size of the frame,typical frame sizes in speech processing range from 20 ms to 40 ms
+     with 50% (+/-10%) overlap between consecutive frames. Popular settings are 25 ms for the frame size
+    :param frame_stride: stride of the frame, usually 10ms
+    :returns proprely windowed frames of the signal.
+    """
+    #framming the signal
+    frame_length = int(round( frame_size * sample_rate))
+    frame_step = int(round( frame_stride * sample_rate))
+    signal_length = len(emphasized_signal)
+    num_frames = int(np.ceil(float(np.abs(signal_length - frame_length)) / frame_step))
+    pad_signal_length = num_frames * frame_step + frame_length
+    z = np.zeros((pad_signal_length - signal_length))
+    pad_signal = np.append(emphasized_signal, z)
+    indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
+    frames = pad_signal[indices.astype(np.int32, copy=False)]
+    #windowing the signal
+    frames *= 0.54 - 0.46 * numpy.cos((2 * numpy.pi * n) / (frame_length - 1))
+    return frames
