@@ -29,11 +29,13 @@ def signal_plot(signal, title):
         import tkinter as Tk
 
 
-    def destroy(e):
-        sys.exit()
+    
+
 
     root = Tk.Tk()
     root.wm_title("Plots")
+    #root.wm_attributes ("-fullscreen", True)
+    
 
 
     f = Figure(figsize=(5, 4), dpi=100)
@@ -51,8 +53,12 @@ def signal_plot(signal, title):
     canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
 
     canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    
+    def _quit():
+        root.quit()
+        root.close()
 
-    button = Tk.Button(master=root, text='Quit', command=sys.exit)
+    button = Tk.Button(master=root, text='Quit', command=_quit)
     button.pack(side=Tk.BOTTOM)
 
     Tk.mainloop()
