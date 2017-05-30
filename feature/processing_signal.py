@@ -1,5 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('TkAgg')
+from numpy import arange, sin, pi
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+import sys
 
 def pre_emphasis(signal, coeff = 0.95):
     """This function reduces the noise in the input signal, it basically is a
@@ -17,13 +22,41 @@ def signal_plot(signal, title):
     :param signal: signal that is to be plotted
     :param title: tilte of the graph
     """
-    #x_values = list(range(0,5))
-    plt.title(title,fontsize = 24)
-    plt.xlabel('Time(s)', fontsize = 16)
-    plt.ylabel('magnitude', fontsize = 16)
-    #plt.axis([0,5,-10000,10000])
-    plt.plot(signal, color = 'b')
-    plt.show()
+
+    if sys.version_info[0] < 3:
+        import Tkinter as Tk
+    else:
+        import tkinter as Tk
+
+
+    def destroy(e):
+        sys.exit()
+
+    root = Tk.Tk()
+    root.wm_title("Plots")
+
+
+    f = Figure(figsize=(5, 4), dpi=100)
+    a = f.add_subplot(111)
+    #t = arange(0.0, 3.0, 0.01)
+    a.plot(signal)
+    a.set_title(title)
+    a.set_xlabel('Time(s)')
+    a.set_ylabel('Y label')
+
+
+    # a tk.DrawingArea
+    canvas = FigureCanvasTkAgg(f, master=root)
+    canvas.show()
+    canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+    canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+    button = Tk.Button(master=root, text='Quit', command=sys.exit)
+    button.pack(side=Tk.BOTTOM)
+
+    Tk.mainloop()
+
 
 def framing_windowing(sample_rate, emphasized_signal, frame_size = 0.025,frame_stride = 0.01 ):
     """ This function windows and frames the given signal

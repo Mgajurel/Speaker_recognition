@@ -1,7 +1,7 @@
 from scipy.io import wavfile
 from processing_signal import *
 
-sample_rate, signal = wavfile.read('man1_nb.wav')
+sample_rate, signal = wavfile.read('sample_male.wav')
 signal_plot(signal, 'Input Signal')
 
 emphasized_signal  = pre_emphasis(signal)
