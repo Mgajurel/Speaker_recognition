@@ -39,6 +39,7 @@ if __name__ == "__main__":
         app.updateSignal(mfcc.filter_bank(), "Filter banks", "X axis", "Y axis")
 
     def calc_mfcc():
+        print(mfcc.get_mfcc())
         app.updateSignal(mfcc.get_mfcc(), "MFCCs", "X axis", "Y axis")
 
     #Add buttons here

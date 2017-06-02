@@ -10,7 +10,7 @@ class MFCCExtractor(object):
         return self.signal
 
 
-    def pre_emphasis(self, coeff = 0.95):
+    def pre_emphasis(self, coeff = 0.97):
         """This function reduces the noise in the input signal, it basically is a
         filter
         :param signal: signal on which the preemphesis is to be performed on
@@ -69,7 +69,7 @@ class MFCCExtractor(object):
         pow_frames = ((1.0 / NFFT) * ((mag_frames) ** 2))
         return pow_frames
 
-    def filter_bank(self, NFFT = 512, nfilt = 40):
+    def filter_bank(self, NFFT = 512, nfilt = 26):
         low_freq_mel = 0
         high_freq_mel = (2595 * np.log10(1 + (self.sample_rate / 2) / 700)) #conversion from hz to mel
         mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2)  # Equally spaced in Mel scale
@@ -92,7 +92,7 @@ class MFCCExtractor(object):
         filter_banks -= (np.mean(filter_banks, axis=0) + 1e-8)#mean normalization to improve SNR
         return filter_banks
 
-    def get_mfcc(self, num_ceps = 12, cep_lifter = 22 ):
+    def get_mfcc(self, num_ceps = 13, cep_lifter = 22 ):
         mfcc = dct(self.filter_bank(), type=2, axis=1, norm='ortho')[:, 1 : (num_ceps + 1)] # Keep 2-13
         nframes, ncoeff = mfcc.shape
         n = np.arange(ncoeff)
