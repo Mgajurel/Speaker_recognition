@@ -9,7 +9,8 @@ if sys.version_info[0] < 3:
 else:
     import tkinter as Tk
 
-sample_rate, signal = wavfile.read('sample_male.wav')
+sample_rate, signal = wavfile.read('english.wav')
+print(sample_rate)
 mfcc = MFCCExtractor(sample_rate, signal)
 
 
@@ -36,7 +37,11 @@ if __name__ == "__main__":
         app.updateSignal(mfcc.pow_spectrum(), "Power Spectrum", "X axis", "Y axis")
 
     def fbank():
-        app.updateSignal(mfcc.filter_bank(), "Filter banks", "X axis", "Y axis")
+        app.updateSignal(mfcc.get_filterbanks(), "Filter banks", "X axis", "Y axis")
+
+    def feat_after_Fbank():
+        feat, energy = mfcc.filter_bank()
+        app.updateSignal(feat,"After passing to Fbank","X axis","Y axis")
 
     def calc_mfcc():
         print(mfcc.get_mfcc())
@@ -61,8 +66,14 @@ if __name__ == "__main__":
     button = Tk.Button(master=root, text='filter banks', command=fbank)
     button.pack(side=Tk.LEFT, padx=20, pady=20)
 
+
+    button = Tk.Button(master=root, text='frames from filter banks', command=feat_after_Fbank)
+    button.pack(side=Tk.LEFT, padx=20, pady=20)
+
+
     button = Tk.Button(master=root, text='MFCC', command=calc_mfcc)
     button.pack(side=Tk.LEFT, padx=20, pady=20)
+
 
 #    root.resizable(0,0)
     root.mainloop()
