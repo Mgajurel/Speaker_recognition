@@ -10,6 +10,8 @@ else:
     import tkinter as Tk
 
 sample_rate, signal = wavfile.read('english.wav')
+signal = signal[0:3.5*sample_rate]
+
 print(sample_rate)
 mfcc = MFCCExtractor(sample_rate, signal)
 
@@ -46,8 +48,14 @@ if __name__ == "__main__":
     def calc_mfcc():
         print(mfcc.get_mfcc())
         app.updateSignal(mfcc.get_mfcc(), "MFCCs", "X axis", "Y axis")
+        
+    def original():
+        app.updateSignal(signal, "MFCCs", "X axis", "Y axis")
 
     #Add buttons here
+    button = Tk.Button(master=root, text='Original', command = original)
+    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    
     button = Tk.Button(master=root, text='Quit', command = _quit)
     button.pack(side=Tk.RIGHT, padx=20, pady=20)
 

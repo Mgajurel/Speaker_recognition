@@ -126,7 +126,6 @@ class MFCCExtractor(object):
         high_freq_mel = self.hz_to_mel(high_freq)
         mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2)  # Equally spaced in Mel scale
         bin = np.floor((NFFT + 1) * self.mel_to_hz(mel_points) / self.sample_rate)
-
         fbank = np.zeros((nfilt, int(np.floor(NFFT / 2 + 1))))
         fbank = np.zeros([nfilt,NFFT//2+1])
         for j in range(0,nfilt):
@@ -140,11 +139,12 @@ class MFCCExtractor(object):
         feat, energy = self.filter_bank()
         feat = np.log(feat)
         mfcc = dct(feat, type=2, axis=1, norm='ortho')[:, : num_ceps] # Keep 2-13
+        
+
         nframes, ncoeff = np.shape(mfcc)
         n = np.arange(ncoeff)
         lift = 1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter)
         mfcc *= lift
         if appendEnergy:
             mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
-        #mfcc -= (np.mean(mfcc, axis=0) + 1e-8)#mean normalization to improve SNR
         return mfcc
