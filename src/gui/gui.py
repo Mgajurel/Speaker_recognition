@@ -38,6 +38,7 @@ class ModelInterface(Tk.Frame):
 
 
 
+
         a = self.f.add_subplot(111)
         a.plot(self.signal)
         a.set_title("Original Signal")

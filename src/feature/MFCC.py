@@ -1,4 +1,5 @@
 import numpy as np
+import decimal
 from scipy.fftpack import dct
 from matplotlib import pyplot as plt
 
@@ -9,6 +10,9 @@ class MFCCExtractor(object):
 
     def getOriginalSignal(self):
         return self.signal
+
+    def round_half_up(self, number):
+        return int(decimal.Decimal(number).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP))
 
 
     def pre_emphasis(self, coeff = 0.95):
@@ -35,17 +39,19 @@ class MFCCExtractor(object):
         sample_rate = self.sample_rate
 
         #framming the signal
-        frame_length = int(round( frame_size * sample_rate))
-        frame_step = int(round( frame_stride * sample_rate))
+        frame_length = int(self.round_half_up( frame_size * sample_rate))
+        frame_step = int(self.round_half_up( frame_stride * sample_rate))
         signal_length = len(emphasized_signal)
         num_frames = int(np.ceil(float(np.abs(signal_length - frame_length)) / frame_step))
         pad_signal_length = num_frames * frame_step + frame_length
         z = np.zeros((pad_signal_length - signal_length))
         pad_signal = np.concatenate((emphasized_signal, z))
         indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
-        frames = pad_signal[indices.astype(np.int32, copy=False)]
+        indices = np.array(indices,dtype=np.int32)
+        frames = pad_signal[indices]
         #windowing the signal
-        frames *= np.hamming(frame_length)
+        win = np.hamming(frame_length)
+        frames *= win
         return frames
 
     def mag_spectrum(self, NFFT = 512):
@@ -75,14 +81,15 @@ class MFCCExtractor(object):
     def filter_bank(self, NFFT = 512, nfilt = 26):
 
         pspec = self.pow_spectrum()
+        pspec = np.where(pspec == 0,np.finfo(float).eps,pspec) # if things are all zeros we get problems
+
         energy = np.sum(pspec,1) #this stores the total energy in each frame
         energy = np.where(energy == 0,np.finfo(float).eps,energy) # if energy is zero, we get problems with log
 
         fbank = self.get_filterbanks(nfilt, NFFT)
         filter_banks = np.dot(pspec, fbank.T)
         filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Numerical Stability
-        filter_banks = 20 * np.log10(filter_banks)
-        filter_banks -= (np.mean(filter_banks, axis=0) + 1e-8)#mean normalization to improve SNR
+        #filter_banks -= (np.mean(filter_banks, axis=0) + 1e-8)#mean normalization to improve SNR
         return filter_banks, energy
 
     def hz_to_mel(self, hz):
@@ -119,7 +126,6 @@ class MFCCExtractor(object):
         high_freq_mel = self.hz_to_mel(high_freq)
         mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2)  # Equally spaced in Mel scale
         bin = np.floor((NFFT + 1) * self.mel_to_hz(mel_points) / self.sample_rate)
-
         fbank = np.zeros((nfilt, int(np.floor(NFFT / 2 + 1))))
         fbank = np.zeros([nfilt,NFFT//2+1])
         for j in range(0,nfilt):
@@ -131,12 +137,14 @@ class MFCCExtractor(object):
 
     def get_mfcc(self, num_ceps = 13, cep_lifter = 22, appendEnergy = True ):
         feat, energy = self.filter_bank()
-        mfcc = dct(feat, type=2, axis=1, norm='ortho')[:, 1 : (num_ceps + 1)] # Keep 2-13
+        feat = np.log(feat)
+        mfcc = dct(feat, type=2, axis=1, norm='ortho')[:, : num_ceps] # Keep 2-13
+        
+
         nframes, ncoeff = np.shape(mfcc)
         n = np.arange(ncoeff)
         lift = 1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter)
         mfcc *= lift
         if appendEnergy:
             mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
-        mfcc -= (np.mean(mfcc, axis=0) + 1e-8)#mean normalization to improve SNR
         return mfcc
