@@ -31,8 +31,8 @@ class ModelInterface(Tk.Frame):
         
     def initUI(self):
         self.parent.wm_title(self.wmTitle)
-#        self.parent.wm_attributes ("-fullscreen", True)    
-        self.parent.wm_state('zoomed')
+        self.parent.wm_attributes ("-fullscreen", True)    
+#        self.parent.wm_state('zoomed')
         
         a = self.f.add_subplot(111)
         a.plot(self.signal)
