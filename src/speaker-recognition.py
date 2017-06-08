@@ -12,7 +12,6 @@ else:
 sample_rate, signal = wavfile.read('english.wav')
 signal = signal[0:int(3.5*sample_rate)]
 
-print(sample_rate)
 mfcc = MFCCExtractor(sample_rate, signal)
 
 
