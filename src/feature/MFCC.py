@@ -8,11 +8,14 @@ class MFCCExtractor(object):
         self.signal = signal
         self.sample_rate = sample_rate
 
-    def getOriginalSignal(self):
+    def get_signal(self):
         return self.signal
 
     def round_half_up(self, number):
         return int(decimal.Decimal(number).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP))
+
+    def set_signal(self, signal):
+        self.signal = signal
 
 
     def pre_emphasis(self, coeff = 0.95):

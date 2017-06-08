@@ -16,6 +16,41 @@ signal = signal[0:int(3.5*sample_rate)]
 mfcc = MFCCExtractor(sample_rate, signal)
 
 
+def init_widget():
+	#Add buttons here
+    button = Tk.Button(master=root, text='Original', command = original)
+    button.pack(side=Tk.LEFT, padx=20)
+
+    button = Tk.Button(master=root, text='Silence', command = silence)
+    button.pack(side=Tk.LEFT, padx=20)
+    
+    button = Tk.Button(master=root, text='Quit', command = _quit)
+    button.pack(side=Tk.RIGHT, padx=20)
+
+    button = Tk.Button(master=root, text='Emphasis', command=preEmphasis)
+    button.pack(side=Tk.LEFT, padx=20)
+
+    button = Tk.Button(master=root, text='Frame', command=framing)
+    button.pack(side=Tk.LEFT, padx=20)
+
+    button = Tk.Button(master=root, text='Magnitude', command=magnitude_frame)
+    button.pack(side=Tk.LEFT, padx=20)
+
+    button = Tk.Button(master=root, text='Power', command=power_frame)
+    button.pack(side=Tk.LEFT, padx=20)
+
+    button = Tk.Button(master=root, text='filter banks', command=fbank)
+    button.pack(side=Tk.LEFT, padx=20)
+
+
+    button = Tk.Button(master=root, text='frames from filter banks', command=feat_after_Fbank)
+    button.pack(side=Tk.LEFT, padx=20)
+
+
+    button = Tk.Button(master=root, text='MFCC', command=calc_mfcc)
+    button.pack(side=Tk.LEFT, padx=20)
+
+
 
 if __name__ == "__main__":
     root = Tk.Tk()
@@ -50,44 +85,17 @@ if __name__ == "__main__":
         app.updateSignal(mfcc.get_mfcc(), "MFCCs", "X axis", "Y axis")
         
     def original():
-        app.updateSignal(signal, "MFCCs", "X axis", "Y axis")
+    	mfcc.set_signal(signal)
+        app.updateSignal(mfcc.get_signal(), "MFCCs", "X axis", "Y axis")
 
     def silence():
-    	app.updateSignal(remove_silence(sample_rate, signal), "Silenced", "X axis", "Y axis")
+    	mfcc.set_signal(remove_silence(sample_rate, signal))
+    	app.updateSignal(mfcc.get_signal(), "Silenced", "X axis", "Y axis")
 
-    #Add buttons here
-    button = Tk.Button(master=root, text='Original', command = original)
-    button.pack(side=Tk.LEFT, padx=20)
 
-    button = Tk.Button(master=root, text='Silence', command = silence)
-    button.pack(side=Tk.LEFT, padx=20)
+    init_widget()
+
     
-    button = Tk.Button(master=root, text='Quit', command = _quit)
-    button.pack(side=Tk.RIGHT, padx=20)
-
-    button = Tk.Button(master=root, text='Emphasis', command=preEmphasis)
-    button.pack(side=Tk.LEFT, padx=20)
-
-    button = Tk.Button(master=root, text='Frame', command=framing)
-    button.pack(side=Tk.LEFT, padx=20)
-
-    button = Tk.Button(master=root, text='Magnitude', command=magnitude_frame)
-    button.pack(side=Tk.LEFT, padx=20)
-
-    button = Tk.Button(master=root, text='Power', command=power_frame)
-    button.pack(side=Tk.LEFT, padx=20)
-
-    button = Tk.Button(master=root, text='filter banks', command=fbank)
-    button.pack(side=Tk.LEFT, padx=20)
-
-
-    button = Tk.Button(master=root, text='frames from filter banks', command=feat_after_Fbank)
-    button.pack(side=Tk.LEFT, padx=20)
-
-
-    button = Tk.Button(master=root, text='MFCC', command=calc_mfcc)
-    button.pack(side=Tk.LEFT, padx=20)
-
 
 #    root.resizable(0,0)
     root.mainloop()

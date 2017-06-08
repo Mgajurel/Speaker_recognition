@@ -23,17 +23,17 @@ class ModelInterface(Tk.Frame):
     def __init__(self, parent, signal, wmTitle="MFCC Feature Extraction"):
         Tk.Frame.__init__(self, parent)
         self.parent = parent
-        self.signal = signal
         self.wmTitle = wmTitle
-
-        self.f = Figure(figsize=(5, 4), dpi=100)
-        self.canvas = FigureCanvasTkAgg(self.f, master=self.parent)
-        self.toolbar = None
+        self.signal = signal
+        
 
         #Initializes the UI
         self.initUI()
 
     def initUI(self):
+        self.f = Figure(figsize=(5, 4), dpi=100)
+        self.canvas = FigureCanvasTkAgg(self.f, master=self.parent)
+        self.toolbar = None
         self.parent.wm_title(self.wmTitle)
 
         #self.parent.wm_attributes ("-fullscreen", True)    
