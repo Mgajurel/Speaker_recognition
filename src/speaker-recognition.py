@@ -10,7 +10,7 @@ else:
     import tkinter as Tk
 
 sample_rate, signal = wavfile.read('english.wav')
-signal = signal[0:3.5*sample_rate]
+signal = signal[0:int(3.5*sample_rate)]
 
 print(sample_rate)
 mfcc = MFCCExtractor(sample_rate, signal)
@@ -20,7 +20,7 @@ mfcc = MFCCExtractor(sample_rate, signal)
 if __name__ == "__main__":
     root = Tk.Tk()
     app =  ModelInterface(root, signal)
-    app.pack(side="top", fill="both", expand=False)
+    app.pack(side="top", fill="both", expand=True)
 
     def _quit():
         root.quit()
