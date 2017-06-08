@@ -2,6 +2,7 @@ from scipy.io import wavfile
 
 from gui.gui import ModelInterface
 from feature.MFCC import MFCCExtractor
+from filter.silence import *
 
 import sys
 if sys.version_info[0] < 3:
@@ -51,8 +52,14 @@ if __name__ == "__main__":
     def original():
         app.updateSignal(signal, "MFCCs", "X axis", "Y axis")
 
+    def silence():
+    	app.updateSignal(remove_silence(sample_rate, signal), "Silenced", "X axis", "Y axis")
+
     #Add buttons here
     button = Tk.Button(master=root, text='Original', command = original)
+    button.pack(side=Tk.LEFT, padx=20)
+
+    button = Tk.Button(master=root, text='Silence', command = silence)
     button.pack(side=Tk.LEFT, padx=20)
     
     button = Tk.Button(master=root, text='Quit', command = _quit)
