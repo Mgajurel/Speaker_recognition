@@ -53,33 +53,33 @@ if __name__ == "__main__":
 
     #Add buttons here
     button = Tk.Button(master=root, text='Original', command = original)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
     
     button = Tk.Button(master=root, text='Quit', command = _quit)
-    button.pack(side=Tk.RIGHT, padx=20, pady=20)
+    button.pack(side=Tk.RIGHT, padx=20)
 
     button = Tk.Button(master=root, text='Emphasis', command=preEmphasis)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
     button = Tk.Button(master=root, text='Frame', command=framing)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
     button = Tk.Button(master=root, text='Magnitude', command=magnitude_frame)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
     button = Tk.Button(master=root, text='Power', command=power_frame)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
     button = Tk.Button(master=root, text='filter banks', command=fbank)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
 
     button = Tk.Button(master=root, text='frames from filter banks', command=feat_after_Fbank)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
 
     button = Tk.Button(master=root, text='MFCC', command=calc_mfcc)
-    button.pack(side=Tk.LEFT, padx=20, pady=20)
+    button.pack(side=Tk.LEFT, padx=20)
 
 
 #    root.resizable(0,0)
