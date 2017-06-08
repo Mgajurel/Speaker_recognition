@@ -32,9 +32,9 @@ class ModelInterface(Tk.Frame):
     def initUI(self):
         self.parent.wm_title(self.wmTitle)
 
-        self.parent.wm_attributes ("-fullscreen", True)    
+        self.parent.wm_attributes ("-fullscreen", False)    
 #        self.parent.wm_state('zoomed')
-        
+
 
 
 
