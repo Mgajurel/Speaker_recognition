@@ -141,7 +141,7 @@ class MFCCExtractor(object):
             for i in range(int(bin[j+1]), int(bin[j+2])):
                 fbank[j,i] = (bin[j+2]-i) / (bin[j+2]-bin[j+1])
 
-        return fbank.T
+        return fbank.T #transpose of the matrix
 
     def get_mfcc(self, num_ceps = 13, cep_lifter = 22, appendEnergy = True ):
         feat, energy = self.filter_bank()
