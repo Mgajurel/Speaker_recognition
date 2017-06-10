@@ -1,5 +1,6 @@
 import numpy as np
 import decimal
+import math
 from scipy.fftpack import dct
 from matplotlib import pyplot as plt
 
@@ -45,9 +46,13 @@ class MFCCExtractor(object):
         frame_length = int(self.round_half_up( frame_size * sample_rate))
         frame_step = int(self.round_half_up( frame_stride * sample_rate))
         signal_length = len(emphasized_signal)
-        num_frames = int(np.ceil(float(np.abs(signal_length - frame_length)) / frame_step))
-        pad_signal_length = num_frames * frame_step + frame_length
-        z = np.zeros((pad_signal_length - signal_length))
+        if signal_length <= frame_length:
+            num_frames = 1
+        else:
+            num_frames = 1 + int(math.ceil((1.0*signal_length-frame_length)/frame_step))
+        #num_frames = int(np.ceil(float(np.abs(signal_length - frame_length)) / frame_step))
+        pad_signal_length = int((num_frames-1)*frame_step + frame_length)
+        z = np.zeros((pad_signal_length - signal_length,))
         pad_signal = np.concatenate((emphasized_signal, z))
         indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
         indices = np.array(indices,dtype=np.int32)
@@ -90,7 +95,7 @@ class MFCCExtractor(object):
         energy = np.where(energy == 0,np.finfo(float).eps,energy) # if energy is zero, we get problems with log
 
         fbank = self.get_filterbanks(nfilt, NFFT)
-        filter_banks = np.dot(pspec, fbank.T)
+        filter_banks = np.dot(pspec, fbank)
         filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Numerical Stability
         #filter_banks -= (np.mean(filter_banks, axis=0) + 1e-8)#mean normalization to improve SNR
         return filter_banks, energy
@@ -129,6 +134,8 @@ class MFCCExtractor(object):
         high_freq_mel = self.hz_to_mel(high_freq)
         mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2)  # Equally spaced in Mel scale
         bin = np.floor((NFFT + 1) * self.mel_to_hz(mel_points) / self.sample_rate)
+
+
         fbank = np.zeros((nfilt, int(np.floor(NFFT / 2 + 1))))
         fbank = np.zeros([nfilt,NFFT//2+1])
         for j in range(0,nfilt):
@@ -136,13 +143,14 @@ class MFCCExtractor(object):
                 fbank[j,i] = (i - bin[j]) / (bin[j+1]-bin[j])
             for i in range(int(bin[j+1]), int(bin[j+2])):
                 fbank[j,i] = (bin[j+2]-i) / (bin[j+2]-bin[j+1])
-        return fbank
+
+        return fbank.T #transpose of the matrix
 
     def get_mfcc(self, num_ceps = 13, cep_lifter = 22, appendEnergy = True ):
         feat, energy = self.filter_bank()
         feat = np.log(feat)
         mfcc = dct(feat, type=2, axis=1, norm='ortho')[:, : num_ceps] # Keep 2-13
-        
+
 
         nframes, ncoeff = np.shape(mfcc)
         n = np.arange(ncoeff)

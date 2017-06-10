@@ -36,8 +36,10 @@ class ModelInterface(Tk.Frame):
         self.toolbar = None
         self.parent.wm_title(self.wmTitle)
 
+
         #self.parent.wm_attributes ("-fullscreen", True)    
         self.parent.wm_state('normal')      
+
 
         a = self.f.add_subplot(111)
         a.plot(self.signal)

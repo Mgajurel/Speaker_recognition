@@ -11,7 +11,7 @@ else:
     import tkinter as Tk
 
 sample_rate, signal = wavfile.read('english.wav')
-signal = signal[0:int(3.5*sample_rate)]
+
 
 mfcc = MFCCExtractor(sample_rate, signal)
 
@@ -83,10 +83,11 @@ if __name__ == "__main__":
     def calc_mfcc():
         print(mfcc.get_mfcc())
         app.updateSignal(mfcc.get_mfcc(), "MFCCs", "X axis", "Y axis")
-        
+
     def original():
-    	mfcc.set_signal(signal)
-        app.updateSignal(mfcc.get_signal(), "MFCCs", "X axis", "Y axis")
+      mfcc.set_signal(signal)
+      app.updateSignal(mfcc.get_signal(), "MFCCs", "X axis", "Y axis")
+
 
     def silence():
     	mfcc.set_signal(remove_silence(sample_rate, signal))
