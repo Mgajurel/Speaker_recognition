@@ -10,7 +10,7 @@ if sys.version_info[0] < 3:
 else:
     import tkinter as Tk
 
-sample_rate, signal = wavfile.read('english.wav')
+sample_rate, signal = wavfile.read('vf3-20.wav')
 
 
 mfcc = MFCCExtractor(sample_rate, signal)
@@ -23,7 +23,7 @@ def init_widget():
 
     button = Tk.Button(master=root, text='Silence', command = silence)
     button.pack(side=Tk.LEFT, padx=20)
-    
+
     button = Tk.Button(master=root, text='Quit', command = _quit)
     button.pack(side=Tk.RIGHT, padx=20)
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         app.updateSignal(feat,"After passing to Fbank","X axis","Y axis")
 
     def calc_mfcc():
-        print(mfcc.get_mfcc())
+        
         app.updateSignal(mfcc.get_mfcc(), "MFCCs", "X axis", "Y axis")
 
     def original():
@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     init_widget()
 
-    
+
 
 #    root.resizable(0,0)
     root.mainloop()

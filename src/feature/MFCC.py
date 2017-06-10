@@ -50,7 +50,7 @@ class MFCCExtractor(object):
             num_frames = 1
         else:
             num_frames = 1 + int(math.ceil((1.0*signal_length-frame_length)/frame_step))
-        #num_frames = int(np.ceil(float(np.abs(signal_length - frame_length)) / frame_step))
+
         pad_signal_length = int((num_frames-1)*frame_step + frame_length)
         z = np.zeros((pad_signal_length - signal_length,))
         pad_signal = np.concatenate((emphasized_signal, z))
@@ -97,7 +97,7 @@ class MFCCExtractor(object):
         fbank = self.get_filterbanks(nfilt, NFFT)
         filter_banks = np.dot(pspec, fbank)
         filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Numerical Stability
-        #filter_banks -= (np.mean(filter_banks, axis=0) + 1e-8)#mean normalization to improve SNR
+
         return filter_banks, energy
 
     def hz_to_mel(self, hz):
@@ -158,4 +158,5 @@ class MFCCExtractor(object):
         mfcc *= lift
         if appendEnergy:
             mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
+
         return mfcc
