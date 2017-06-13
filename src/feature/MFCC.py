@@ -3,102 +3,94 @@ import decimal
 import math
 from scipy.fftpack import dct
 from matplotlib import pyplot as plt
+import sys
 
 class MFCCExtractor(object):
-    def __init__(self, sample_rate, signal):
-        self.signal = signal
-        self.sample_rate = sample_rate
+    def __init__(self, fs, PRE_EMP=0.95, FRAME_SIZE=0.025, 
+        FRAME_STRIDE=0.01, NFFT=512, N_FILT=26, num_ceps = 13, 
+        cep_lifter = 22, appendEnergy = True, verbose=True):
+        self.fs = fs
+        self.PRE_EMP = PRE_EMP
 
-    def get_signal(self):
-        return self.signal
+        self.FRAME_LEN = int(math.ceil(FRAME_SIZE * fs))
+        self.FRAME_STEP = int(math.ceil(FRAME_STRIDE * fs))
 
-    def round_half_up(self, number):
-        return int(decimal.Decimal(number).quantize(decimal.Decimal('1'), rounding=decimal.ROUND_HALF_UP))
+        self.NFFT = NFFT
+        self.N_FILT = N_FILT
+        self.num_ceps = num_ceps
+        self.cep_lifter = cep_lifter
+        self.appendEnergy = appendEnergy
+        self.verbose = verbose
 
-    def set_signal(self, signal):
-        self.signal = signal
+    def dprint(self, message):
+        if self.verbose:
+            if sys.version_info[0] < 3:
+                print message
+            else:
+                print(message)
 
+    def extract(self, signal):
+        if signal.ndim > 1:
+            self.dprint("INFO: Input signal has more than 1 channel; the channels will be averaged.")
+            signal = mean(signal, axis=1)
+        assert len(signal) > 5 * self.FRAME_LEN, "Signal too short!"
 
-    def pre_emphasis(self, coeff = 0.95):
-        """This function reduces the noise in the input signal, it basically is a
-        filter
-        :param signal: signal on which the preemphesis is to be performed on
-        :param coeff: coefficient determining the behaviour of filter, coeff=0 is no filter
-        and coeff=0.95 is default
-        :returns the filtered signal
-        """
-        signal = self.signal
-        emphasized_signal = np.append(signal[0],signal[1:]-coeff*signal[:-1])
-        return emphasized_signal
-
-    def framing_windowing(self, frame_size = 0.025,frame_stride = 0.01 ):
-        """ This function windows and frames the given signal
-        :param emphasized_signal: the output from the Emphasis filter i.e. outout from function pre_emphasis
-        :param frame_size:size of the frame,typical frame sizes in speech processing range from 20 ms to 40 ms
-         with 50% (+/-10%) overlap between consecutive frames. Popular settings are 25 ms for the frame size
-        :param frame_stride: stride of the frame, usually 10ms
-        :returns proprely windowed frames of the signal.
-        """
-        emphasized_signal = self.pre_emphasis()
-        sample_rate = self.sample_rate
-
+        #Pre Emphasis
+        #signal = signal[0] + signal[1]-a*signal[0] + signal[2]-a*signal[1] + ...
+        signal = np.append(signal[0], signal[1:] - self.PRE_EMP * signal[:-1])
+        
         #framming the signal
-        frame_length = int(self.round_half_up( frame_size * sample_rate))
-        frame_step = int(self.round_half_up( frame_stride * sample_rate))
-        signal_length = len(emphasized_signal)
-        if signal_length <= frame_length:
+        signal_length = len(signal)
+        if signal_length <= self.FRAME_LEN:
             num_frames = 1
         else:
-            num_frames = 1 + int(math.ceil((1.0*signal_length-frame_length)/frame_step))
+            num_frames = 1 + int(math.ceil((1.0*signal_length-self.FRAME_LEN)/self.FRAME_STEP))
 
-        pad_signal_length = int((num_frames-1)*frame_step + frame_length)
+        pad_signal_length = int((num_frames-1)*self.FRAME_STEP + self.FRAME_LEN)
         z = np.zeros((pad_signal_length - signal_length,))
-        pad_signal = np.concatenate((emphasized_signal, z))
-        indices = np.tile(np.arange(0, frame_length), (num_frames, 1)) + np.tile(np.arange(0, num_frames * frame_step, frame_step), (frame_length, 1)).T
+        pad_signal = np.concatenate((signal, z))
+        indices = np.tile(np.arange(0, self.FRAME_LEN), (num_frames, 1)) + np.tile(np.arange(0, num_frames * self.FRAME_STEP, self.FRAME_STEP), (self.FRAME_LEN, 1)).T
         indices = np.array(indices,dtype=np.int32)
         frames = pad_signal[indices]
+
         #windowing the signal
-        win = np.hamming(frame_length)
+        #passing the signal through hamming window
+        win = np.hamming(self.FRAME_LEN)
         frames *= win
-        return frames
 
-    def mag_spectrum(self, NFFT = 512):
-        """
-        this function provides the magnitude spectrum of the windowed and framed signal
-        :param frames:proprely windowed frames of the signal
-        :param NFFT: number of times fast fourier transform is carried output
-        :returns magnitude frames
-        """
-        frames = self.framing_windowing()
-        if np.shape(frames)[1] > NFFT:
-            print("Warning, frame length (%d) is greater than FFT size (%d), frame will be truncated. Increase NFFT to avoid.", np.shape(frames)[1], NFFT)
-        mag_frames = np.absolute(np.fft.rfft(frames, NFFT))
-        return mag_frames
+        #Magnitude spectrum
+        if np.shape(frames)[1] > self.NFFT:
+            self.dprint("Warning, frame length (%d) is greater than FFT size (%d), frame will be truncated. Increase NFFT to avoid."%(np.shape(frames)[1], self.NFFT))
+        
+        mag_frames = np.absolute(np.fft.rfft(frames, self.NFFT))
+        
+        #Power Spectrum
+        pspec = ((1.0 / self.NFFT) * ((mag_frames) ** 2))
+        
 
-    def pow_spectrum(self, NFFT = 512):
-        """
-        this function provides the power spectrum of the magnitude spectrum
-        :param mag_frames:magnitude frames
-        :param NFFT: number of times fast fourier transform is carried output
-        :returns power frames
-        """
-        mag_frames = self.mag_spectrum()
-        pow_frames = ((1.0 / NFFT) * ((mag_frames) ** 2))
-        return pow_frames
-
-    def filter_bank(self, NFFT = 512, nfilt = 26):
-
-        pspec = self.pow_spectrum()
+        #Filter Bank
         pspec = np.where(pspec == 0,np.finfo(float).eps,pspec) # if things are all zeros we get problems
 
         energy = np.sum(pspec,1) #this stores the total energy in each frame
         energy = np.where(energy == 0,np.finfo(float).eps,energy) # if energy is zero, we get problems with log
 
-        fbank = self.get_filterbanks(nfilt, NFFT)
+        fbank = self.get_filterbanks()
         filter_banks = np.dot(pspec, fbank)
         filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Numerical Stability
 
-        return filter_banks, energy
+        # MFCC Calculation
+        filter_banks = np.log(filter_banks)
+        mfcc = dct(filter_banks, type=2, axis=1, norm='ortho')[:, : self.num_ceps] # Keep 2-13
+
+
+        nframes, ncoeff = np.shape(mfcc)
+        n = np.arange(ncoeff)
+        lift = 1 + (self.cep_lifter / 2) * np.sin(np.pi * n / self.cep_lifter)
+        mfcc *= lift
+        if self.appendEnergy:
+            mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
+        
+        return mfcc
 
     def hz_to_mel(self, hz):
         """Convert a value in Hertz to Mels
@@ -117,7 +109,7 @@ class MFCCExtractor(object):
         """
         return 700*(10**(mel/2595.0)-1)
 
-    def get_filterbanks(self, nfilt = 26, NFFT = 512):
+    def get_filterbanks(self):
         """Compute a Mel-filterbank. The filters are stored in the rows, the columns correspond
         to fft bins. The filters are returned as an array of size nfilt * (nfft/2 + 1)
 
@@ -129,34 +121,19 @@ class MFCCExtractor(object):
         :returns: A numpy array of size nfilt * (nfft/2 + 1) containing filterbank. Each row holds 1 filter.
         """
         low_freq = 0
-        high_freq = self.sample_rate / 2
+        high_freq = self.fs / 2
         low_freq_mel = self.hz_to_mel(low_freq)
         high_freq_mel = self.hz_to_mel(high_freq)
-        mel_points = np.linspace(low_freq_mel, high_freq_mel, nfilt + 2)  # Equally spaced in Mel scale
-        bin = np.floor((NFFT + 1) * self.mel_to_hz(mel_points) / self.sample_rate)
+        mel_points = np.linspace(low_freq_mel, high_freq_mel, self.N_FILT + 2)  # Equally spaced in Mel scale
+        bin = np.floor((self.NFFT + 1) * self.mel_to_hz(mel_points) / self.fs)
 
 
-        fbank = np.zeros((nfilt, int(np.floor(NFFT / 2 + 1))))
-        fbank = np.zeros([nfilt,NFFT//2+1])
-        for j in range(0,nfilt):
+        fbank = np.zeros((self.N_FILT, int(np.floor(self.NFFT / 2 + 1))))
+        fbank = np.zeros([self.N_FILT,self.NFFT//2+1])
+        for j in range(0,self.N_FILT):
             for i in range(int(bin[j]), int(bin[j+1])):
                 fbank[j,i] = (i - bin[j]) / (bin[j+1]-bin[j])
             for i in range(int(bin[j+1]), int(bin[j+2])):
                 fbank[j,i] = (bin[j+2]-i) / (bin[j+2]-bin[j+1])
 
         return fbank.T #transpose of the matrix
-
-    def get_mfcc(self, num_ceps = 13, cep_lifter = 22, appendEnergy = True ):
-        feat, energy = self.filter_bank()
-        feat = np.log(feat)
-        mfcc = dct(feat, type=2, axis=1, norm='ortho')[:, : num_ceps] # Keep 2-13
-
-
-        nframes, ncoeff = np.shape(mfcc)
-        n = np.arange(ncoeff)
-        lift = 1 + (cep_lifter / 2) * np.sin(np.pi * n / cep_lifter)
-        mfcc *= lift
-        if appendEnergy:
-            mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
-
-        return mfcc
