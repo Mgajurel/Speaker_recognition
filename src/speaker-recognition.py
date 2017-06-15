@@ -2,6 +2,7 @@ from scipy.io import wavfile
 
 from gui.gui import ModelInterface
 from feature.MFCC import MFCCExtractor
+from feature.PCA import PCA
 from filter.silence import *
 
 import sys
@@ -13,6 +14,7 @@ else:
 sample_rate, signal = wavfile.read('vf3-20.wav')
 
 mfcc = MFCCExtractor(fs=sample_rate)
+pca = PCA()
 
 
 def init_widget():
@@ -32,8 +34,10 @@ if __name__ == "__main__":
         root.quit()
         root.destroy()
 
-    def calc_mfcc():        
-        app.updateSignal(mfcc.extract(signal), "MFCCs", "X axis", "Y axis")
+    def calc_mfcc():
+        data = mfcc.extract(signal).T 
+	
+        app.updateSignal(pca.pca(data), "MFCCs", "X axis", "Y axis")
 
     init_widget()
 
