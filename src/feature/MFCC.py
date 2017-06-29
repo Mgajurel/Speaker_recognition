@@ -3,7 +3,7 @@ MFCC - Mel Frequency Cepstrum Co-efficient
 To get the feature from the audio signal
 Author: Kushal Gajurel
 Date:
-Github username: 
+Github username:Mgajurel
 """
 
 import numpy as np
