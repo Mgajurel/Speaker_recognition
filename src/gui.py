@@ -99,13 +99,13 @@ class Main(QtWidgets.QDialog):
         self.start_record()
         dprint("Start enroll record")
 
-    # Load the users from the list and populate the user choose
+
     def loadUsers(self):
         dprint("Load Users")
         with open("avatar/metainfo.txt") as db:
             for line in db:
                 tmp = line.split()
-                dprint(tmp)
+                print(tmp[0])
                 self.userdata.append(tmp)
                 self.Userchooser.addItem(tmp[0])
 
@@ -122,9 +122,6 @@ class Main(QtWidgets.QDialog):
         userindex = self.Userchooser.currentIndex() - 1
         u = self.userdata[userindex]
         u[0] = (self.Username.displayText())
-        #print them
-        dprint(userindex)
-        dprint(u)
         #save the image as this Username
         shutil.copy2("./avatar/temp.jpg", "./avatar/"+u[0]+".jpg")
         u[1] = self.Userage.value()
@@ -218,6 +215,8 @@ class Main(QtWidgets.QDialog):
         self.enrollTime.setText(s)
         self.recoTime.setText(s)
         self.convTime.setText(s)
+
+
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     window = Main()
