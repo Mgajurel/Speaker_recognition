@@ -33,7 +33,7 @@ class MFCCExtractor(object):
     def dprint(self, message):
         if self.verbose:
             if sys.version_info[0] < 3:
-                print message
+                print (message)
             else:
                 print(message)
 
