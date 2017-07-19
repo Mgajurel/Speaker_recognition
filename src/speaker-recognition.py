@@ -35,8 +35,8 @@ if __name__ == "__main__":
         root.destroy()
 
     def calc_mfcc():
-        data = mfcc.extract(signal).T 
-	
+        data = mfcc.extract(signal,"vf3-20_features.csv").T 
+
         app.updateSignal(pca.pca(data), "MFCCs", "X axis", "Y axis")
 
     init_widget()
