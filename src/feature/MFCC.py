@@ -14,8 +14,8 @@ from matplotlib import pyplot as plt
 import sys
 
 class MFCCExtractor(object):
-    def __init__(self, fs, PRE_EMP=0.95, FRAME_SIZE=0.025, 
-        FRAME_STRIDE=0.01, NFFT=512, N_FILT=26, num_ceps = 13, 
+    def __init__(self, fs, PRE_EMP=0.95, FRAME_SIZE=0.025,
+        FRAME_STRIDE=0.01, NFFT=512, N_FILT=26, num_ceps = 13,
         cep_lifter = 22, appendEnergy = True, verbose=True):
         self.fs = fs
         self.PRE_EMP = PRE_EMP
@@ -33,11 +33,11 @@ class MFCCExtractor(object):
     def dprint(self, message):
         if self.verbose:
             if sys.version_info[0] < 3:
-                print message
+                print (message)
             else:
                 print(message)
 
-    def extract(self, signal):
+    def extract(self, signal, filename):
         if signal.ndim > 1:
             self.dprint("INFO: Input signal has more than 1 channel; the channels will be averaged.")
             signal = mean(signal, axis=1)
@@ -46,7 +46,7 @@ class MFCCExtractor(object):
         #Pre Emphasis
         #signal = signal[0] + signal[1]-a*signal[0] + signal[2]-a*signal[1] + ...
         signal = np.append(signal[0], signal[1:] - self.PRE_EMP * signal[:-1])
-        
+
         #framming the signal
         signal_length = len(signal)
         if signal_length <= self.FRAME_LEN:
@@ -69,12 +69,12 @@ class MFCCExtractor(object):
         #Magnitude spectrum
         if np.shape(frames)[1] > self.NFFT:
             self.dprint("Warning, frame length (%d) is greater than FFT size (%d), frame will be truncated. Increase NFFT to avoid."%(np.shape(frames)[1], self.NFFT))
-        
+
         mag_frames = np.absolute(np.fft.rfft(frames, self.NFFT))
-        
+
         #Power Spectrum
         pspec = ((1.0 / self.NFFT) * ((mag_frames) ** 2))
-        
+
 
         #Filter Bank
         pspec = np.where(pspec == 0,np.finfo(float).eps,pspec) # if things are all zeros we get problems
@@ -97,8 +97,8 @@ class MFCCExtractor(object):
         mfcc *= lift
         if self.appendEnergy:
             mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
-        
-        return mfcc
+        np.savetxt(filename, mfcc, fmt='%.8f', delimiter=',')
+
 
     def hz_to_mel(self, hz):
         """Convert a value in Hertz to Mels
