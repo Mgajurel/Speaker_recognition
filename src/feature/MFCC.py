@@ -16,7 +16,7 @@ import sys
 class MFCCExtractor(object):
     def __init__(self, fs, PRE_EMP=0.95, FRAME_SIZE=0.025,
         FRAME_STRIDE=0.01, NFFT=512, N_FILT=26, num_ceps = 13,
-        cep_lifter = 22, appendEnergy = True, verbose=True):
+        cep_lifter = 22, appendEnergy = True, verbose=True, SHOW_AS_FULL_LIST = False):
         self.fs = fs
         self.PRE_EMP = PRE_EMP
 
@@ -29,6 +29,9 @@ class MFCCExtractor(object):
         self.cep_lifter = cep_lifter
         self.appendEnergy = appendEnergy
         self.verbose = verbose
+        #Display full numpy array on console
+        if(SHOW_AS_FULL_LIST):
+            np.set_printoptions(threshold=np.nan)
 
     def dprint(self, message):
         if self.verbose:
@@ -98,6 +101,7 @@ class MFCCExtractor(object):
         if self.appendEnergy:
             mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
         np.savetxt(filename, mfcc, fmt='%.8f', delimiter=',')
+        return mfcc
 
 
     def hz_to_mel(self, hz):
