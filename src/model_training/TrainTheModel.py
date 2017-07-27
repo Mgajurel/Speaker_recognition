@@ -43,8 +43,8 @@ def training(filepath):
         feature = csv_extractor(filepath + "/" + csv)
         print("Size of feature full", feature.shape)       
         feature = feature[0:sample_size]
-        print("Size of feature used", feature.shape)
-        userList.write(csv[:-9] + "\n") 
+        print("Size of feature used", feature.shape, "\n")
+        userList.write(csv[7:-9] + "\n") 
 
         # # Increase row iteratively but increase column only after end of 1 feature
         # for i in range(sample_size):
@@ -172,7 +172,7 @@ def confusion_matrix(y_test, predictions):
     print("Accurate =", correct)
     print("Incorrect =", incorrect)
 
-debug = True
+debug = False
 
 def dprint(message):
     if(debug):
