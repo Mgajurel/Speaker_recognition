@@ -16,7 +16,7 @@ _Feature_Reduction_:
 ## How to run
 - clone the repository on your local storage: 
 $ git clone https://github.com/Mgajurel/Speaker_recognition.git
-- change directory to Speaker-recognition/src
+- change directory to Speaker_recognition/src
 $ cd Speaker-recognition/src
 - run speaker-recognition.py
 $ python speaker-recognition.py
