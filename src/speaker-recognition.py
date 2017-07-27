@@ -60,13 +60,28 @@ while True:
 
 	elif choice == "4":
 		print_label("Entering Prediction mode")
-		# TODO record a sample audio default of < 0.9seconds
-		 	#test nd array of Kushal
-		from model_training.TrainTheModel import prediction,csv_extractor
-		filepath = input("Enter file path to test: ")
-		feat = csv_extractor(filepath)	#files/csv/test_suren_1_mfcc.csv
-		# print(feat)
-		prediction(feat)
+		filename = input("Enter filename of wav file at files/test/wav to test: ")
+		from scipy.io import wavfile		
+		try:
+			fs, signal = wavfile.read("files/wav/" + filename)
+			from feature.MFCC import MFCCExtractor
+			mfcc = MFCCExtractor(fs)
+
+			from model_training.TrainTheModel import Prediction
+			prediction = Prediction()
+
+			print_label("Prediction result:")
+			print("File:", filename)
+			prediction.predict(mfcc.extract(signal))
+
+		except (FileNotFoundError, IOError):
+			print("Wrong file or file path")
+
+		# from model_training.TrainTheModel import prediction,csv_extractor
+		# filepath = input("Enter file path to test: ")
+		# feat = csv_extractor(filepath)	#files/csv/test_suren_1_mfcc.csv
+		# # print(feat)
+		# prediction(feat)
 
 	elif choice == 'e':
 		break

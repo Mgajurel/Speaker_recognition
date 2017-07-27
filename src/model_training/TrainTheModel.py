@@ -34,6 +34,8 @@ def training(filepath):
 
     row = 0
     col = 0
+    target = None
+
     target = np.zeros(shape= (sample_size*n,n), dtype = int)
     userList = open("files/metadata.txt", "w")
     for csv in csv_files:
@@ -44,17 +46,28 @@ def training(filepath):
         print("Size of feature used", feature.shape)
         userList.write(csv[:-9] + "\n") 
 
-        # Increase row iteratively but increase column only after end of 1 feature
-        for i in range(sample_size):
-            target[row, col] = 1
-            row += 1
-        col += 1
+        # # Increase row iteratively but increase column only after end of 1 feature
+        # for i in range(sample_size):
+        #     target[row, col] = 1
+        #     row += 1
+        # col += 1
 
         if is_firstrun:
             features = feature
+            target = np.zeros(shape= (feature.shape[0],n), dtype = int)
+            for i in range(feature.shape[0]):
+                target[row, col] = 1
+                row += 1
+            col += 1
             is_firstrun = False
         else:
             features = np.vstack((features, feature))
+            for i in range(feature.shape[0]):
+                target_row = np.zeros(shape= (n), dtype = int)
+                target_row[col] = 1
+                target = np.vstack((target, target_row))
+                row += 1
+            col += 1
 
     userList.close()
 
@@ -82,11 +95,7 @@ def training(filepath):
 
     from sklearn.neural_network import MLPClassifier
 
-    mlp = MLPClassifier(hidden_layer_sizes=(30, 30, 30),
-        activation="logistic",
-        max_iter=2000,
-        alpha=1e-5,
-        random_state=1)
+    mlp = MLPClassifier(hidden_layer_sizes=(30, 30, 30))
 
     # from sklearn.pipeline import Pipeline
     # from sklearn.preprocessing import MinMaxScaler
@@ -162,3 +171,63 @@ def confusion_matrix(y_test, predictions):
             incorrect += 1
     print("Accurate =", correct)
     print("Incorrect =", incorrect)
+
+debug = True
+
+def dprint(message):
+    if(debug):
+        print(message)
+
+class Prediction(object):
+    def __init__(self):
+        dprint("Load pickle file")
+        self.NN = pickle.load(open('files/model.pkl','rb'))
+        dprint("Load users from metadata")
+        # Load user names
+        userList = open("files/metadata.txt", "r")
+        self.users = userList.readlines()
+        userList.close()
+        dprint("Init finished.")
+
+    def predict(self, mfcc_signal):
+        dprint("Predicting")
+
+        #Normalize the test data        
+        from sklearn.preprocessing import StandardScaler
+        scaler = StandardScaler()
+        # Fit only to the training data
+        scaler.fit(mfcc_signal)
+
+        # Now apply the transformations to the data:
+        X_test = scaler.transform(mfcc_signal)
+        output = self.NN.predict(X_test)
+        print("The user is:", self.get_label(output))
+        return output
+
+    def get_label(self, output):
+        n = output.shape[1]
+        count_array = np.zeros((n,), dtype=np.int)
+        count_other = 0
+        test_data = np.zeros((n,), dtype=np.int)
+        counted = False
+
+        for i in range(output.shape[0]):
+            data = output[i]
+            for j in range(n):
+                test_data = np.zeros((n,), dtype=np.int)
+                test_data[j] = 1
+                if(data == test_data).all():
+                    count_array[j] += 1
+                    counted = True
+            if not counted:
+                count_other += 1
+
+
+        # np.set_printoptions(threshold=np.nan)
+        dprint("Predicted Overview:")
+        if debug:
+            print("Prediction Count", count_array, "Other:", count_other)
+        label = self.users[count_array.argmax()]
+        if debug:
+            print("Recognized user:", label)
+        return label
