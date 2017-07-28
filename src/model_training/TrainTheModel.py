@@ -1,8 +1,17 @@
 import csv
 import numpy as np
-from sknn.mlp import Classifier, Layer
 import pickle
 import os
+
+debug = False
+
+def dprint(message):
+    if(debug):
+        print(message)
+
+def print_label(text, character="*"):
+    star = int((80-len(text))/2)
+    print(character*star, text, character*star)
 
 # Functions to extract feature/save values from csv and return the value
 def csv_extractor(csv_file):
@@ -14,11 +23,7 @@ def csv_extractor(csv_file):
     feat = feat.astype(np.float)
     return feat
 
-def print_label(text, character="*"):
-    star = int((80-len(text))/2)
-    print(character*star, text, character*star)
-
-def training(filepath):
+def training(filepath, verbose=False):
     print_label("Training the dataset")
 
     csv_files = [f for f in os.listdir(filepath) if f.endswith('.csv')]
@@ -26,9 +31,9 @@ def training(filepath):
     if(n < 1):
         print("No csv files found. Cancelling operation.")
         return
-    print("Total number of Class =",n)
+    print("Total number of Class =", n, "\n")
 
-    sample_size = 1200
+    sample_size = 1303
     features = None
     is_firstrun = True
 
@@ -45,12 +50,6 @@ def training(filepath):
         feature = feature[0:sample_size]
         print("Size of feature used", feature.shape, "\n")
         userList.write(csv[7:-9] + "\n") 
-
-        # # Increase row iteratively but increase column only after end of 1 feature
-        # for i in range(sample_size):
-        #     target[row, col] = 1
-        #     row += 1
-        # col += 1
 
         if is_firstrun:
             features = feature
@@ -75,7 +74,7 @@ def training(filepath):
     features = features.astype(np.float)
     print("Features:", features.shape)
     print(features)
-    print("Target:", target.shape)
+    print("\nTarget:", target.shape)
     print(target)
 
     print_label("Neural Network modelling", character="-")
@@ -95,7 +94,8 @@ def training(filepath):
 
     from sklearn.neural_network import MLPClassifier
 
-    mlp = MLPClassifier(hidden_layer_sizes=(30, 30, 30))
+    mlp = MLPClassifier(hidden_layer_sizes=100,
+        max_iter=10000, tol=1e-6, verbose=verbose)
 
     # from sklearn.pipeline import Pipeline
     # from sklearn.preprocessing import MinMaxScaler
@@ -105,7 +105,8 @@ def training(filepath):
     #                     learning_rate = 0.001,
     #                     n_iter = 2))])
 
-    mlp.fit(X_train,y_train) 
+    mlp.fit(X_train,y_train)
+    print("Total iteration run:", mlp.n_iter_)
 
     predictions = mlp.predict(X_test)   
 
@@ -118,49 +119,6 @@ def training(filepath):
     pickle.dump(mlp, open(filepath+'/../model.pkl','wb'))
     print("Model is saved to files/model.pkl")
 
-def prediction(feature_ndarray):
-    print("Loading database file")
-    NN = pickle.load(open('files/model.pkl','rb'))
-
-    # Load user names
-    userList = open("files/metadata.txt", "r")
-    users = userList.readlines()
-    userList.close()
-
-    print("Predecting from features")
-    #Normalize the test data
-    from sklearn.preprocessing import StandardScaler
-    scaler = StandardScaler()
-    # Fit only to the training data
-    scaler.fit(feature_ndarray)
-
-    # Now apply the transformations to the data:
-    X_test = scaler.transform(feature_ndarray)
-    output = NN.predict(X_test)
-    
-    n = output.shape[1]
-    count_array = np.zeros((n,), dtype=np.int)
-    count_other = 0
-    test_data = np.zeros((n,), dtype=np.int)
-    counted = False
-
-    for i in range(output.shape[0]):
-        data = output[i]
-        for j in range(n):
-            test_data = np.zeros((n,), dtype=np.int)
-            test_data[j] = 1
-            if(data == test_data).all():
-                count_array[j] += 1
-                counted = True
-        if not counted:
-            count_other += 1
-
-
-    # np.set_printoptions(threshold=np.nan)
-    print("Predicted Complete:")
-    print("Prediction Count", count_array, "Other:", count_other)
-    print("Recognized user:", users[count_array.argmax()])
-
 def confusion_matrix(y_test, predictions):
     correct = 0
     incorrect = 0
@@ -171,12 +129,6 @@ def confusion_matrix(y_test, predictions):
             incorrect += 1
     print("Accurate =", correct)
     print("Incorrect =", incorrect)
-
-debug = False
-
-def dprint(message):
-    if(debug):
-        print(message)
 
 class Prediction(object):
     def __init__(self):

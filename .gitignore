@@ -102,6 +102,9 @@ ENV/
 
 # runtime output
 *.csv
-*.txt
-*.pkl
 *.pyc
+metadata.txt
+model.pkl
+
+# test file
+test.py

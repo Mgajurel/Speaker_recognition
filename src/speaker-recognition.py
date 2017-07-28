@@ -26,53 +26,56 @@ while True:
 	choice = input("Enter you choice->")
 	if choice == "1":
 		print_label("Entering Training mode")
+
+		""" 
+		First convert all the wav files to CSV
+		"""
 		toCsv = input("Do you want to convert all wav files to csv files(y/n)?")
 		if toCsv == 'y':
 			print_info("Converting wav to CSV")
 			from feature.utils import wavsToCsv
-			wavsToCsv("files/wav", "files/csv", verbose=True)
+			wavsToCsv("files/wav", "files/csv", verbose=False)
+			print_label("Converting to csv complete", character="-")
 		else:
 			print_info("Convert to csv cancelled")
 		print_footer();
 
-		# Training the network using neural network, this may take a while
+		"""
+		Now use these saved csv to train the neural network
+		This may take a while
+		"""
 		toTrain = input("Do you want to train the network, this may take a while(y/n)")
 		if toTrain == 'y':
 			print_info("Training started.")
 			from model_training.TrainTheModel import training
-			training("files/csv")
+			training("files/csv", verbose=False)
 		else:
 			print_info("Training cancelled.")
 
 
 	elif choice == "2":
-		print_label("Entering Prediction mode")
-		# filepath = input("Enter filepath of wav file to test: ")
+		print_label("Entering Prediction mode (delta)")
 		filepath = "files/test/wav"
 		print("Filepath =", filepath)
 		from scipy.io import wavfile		
 		try:
 			import os
 			from model_training.TrainTheModel import Prediction
-			from feature.MFCC import MFCCExtractor
+			from feature.MFCC import mfcc
+			from feature.MFCC import delta
 
 			wav_files = [f for f in os.listdir(filepath) if f.endswith('.wav')]
 			print_label("Prediction result:")
 			for wav_file in wav_files:
 				fs, signal = wavfile.read(filepath+"/"+ wav_file)				
-				mfcc = MFCCExtractor(fs)				
+				mfcc_feat = mfcc(signal, fs)
+				d_mfcc_feat = delta(mfcc_feat, 2)				
 				prediction = Prediction()				
 				print("File:", wav_file)
-				prediction.predict(mfcc.extract(signal))
+				prediction.predict(d_mfcc_feat)
 
 		except (FileNotFoundError, IOError):
 			print("Wrong file or file path")
-
-		# from model_training.TrainTheModel import prediction,csv_extractor
-		# filepath = input("Enter file path to test: ")
-		# feat = csv_extractor(filepath)	#files/csv/test_suren_1_mfcc.csv
-		# # print(feat)
-		# prediction(feat)
 
 	elif choice == "3":
 		print_label("Entering MFCC feature extraction mode")

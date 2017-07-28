@@ -1,193 +1,188 @@
-"""
-MFCC - Mel Frequency Cepstrum Co-efficient
-To get the feature from the audio signal
-Author: Kushal Gajurel
-Date:
-Github username:Mgajurel
-"""
-
-import numpy as np
-import decimal
-import math
+from __future__ import division
+import numpy
+from feature import sigproc
 from scipy.fftpack import dct
-from matplotlib import pyplot as plt
-import sys
 
-def remove_silence(fs, signal,
-        frame_duration = 0.02,
-        frame_shift = 0.01,
-        perc = 0.15):
-    orig_dtype = type(signal[0])
-    typeinfo = np.iinfo(orig_dtype)
-    is_unsigned = typeinfo.min >= 0
-    signal = signal.astype(np.int64)
-    if is_unsigned:
-        signal = signal - (typeinfo.max + 1) / 2
+def mfcc(signal,samplerate=16000,winlen=0.025,winstep=0.01,numcep=13,
+         nfilt=26,nfft=512,lowfreq=0,highfreq=None,preemph=0.97,ceplifter=22,appendEnergy=True,
+         winfunc=lambda x:numpy.ones((x,))):
+    """Compute MFCC features from an audio signal.
 
-    siglen = len(signal)
-    retsig = np.zeros(siglen, dtype = np.int64)
-    frame_length = int(frame_duration * fs)
-    frame_shift_length = int(frame_shift * fs)
-    new_siglen = 0
-    i = 0
-    # NOTE: signal ** 2 where signal is a numpy array
-    #       interpret an unsigned integer as signed integer,
-    #       e.g, if dtype is uint8, then
-    #           [128, 127, 129] ** 2 = [0, 1, 1]
-    #       so the energy of the signal is somewhat
-    #       right
-    average_energy = np.sum(signal ** 2) / float(siglen)
-    #print "Avg Energy: ", average_energy
-    while i < siglen:
-        subsig = signal[i:i + frame_length]
-        ave_energy = np.sum(subsig ** 2) / float(len(subsig))
-        if ave_energy < average_energy * perc:
-            i += frame_length
-        else:
-            sigaddlen = min(frame_shift_length, len(subsig))
-            retsig[new_siglen:new_siglen + sigaddlen] = subsig[:sigaddlen]
-            new_siglen += sigaddlen
-            i += frame_shift_length
-    retsig = retsig[:new_siglen]
-    if is_unsigned:
-        retsig = retsig + typeinfo.max / 2
-    return retsig.astype(orig_dtype)
+    :param signal: the audio signal from which to compute features. Should be an N*1 array
+    :param samplerate: the samplerate of the signal we are working with.
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)
+    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)
+    :param numcep: the number of cepstrum to return, default 13
+    :param nfilt: the number of filters in the filterbank, default 26.
+    :param nfft: the FFT size. Default is 512.
+    :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
+    :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
+    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97. 
+    :param ceplifter: apply a lifter to final cepstral coefficients. 0 is no lifter. Default is 22. 
+    :param appendEnergy: if this is true, the zeroth cepstral coefficient is replaced with the log of the total frame energy.
+    :param winfunc: the analysis window to apply to each frame. By default no window is applied.
+    :returns: A numpy array of size (NUMFRAMES by numcep) containing features. Each row holds 1 feature vector.
+    """            
+    feat,energy = fbank(signal,samplerate,winlen,winstep,nfilt,nfft,lowfreq,highfreq,preemph,winfunc)
+    feat = numpy.log(feat)
+    feat = dct(feat, type=2, axis=1, norm='ortho')[:,:numcep]
+    feat = lifter(feat,ceplifter)
+    if appendEnergy: feat[:,0] = numpy.log(energy) # replace first cepstral coefficient with log of frame energy
+    return feat
 
-class MFCCExtractor(object):
-    def __init__(self, fs, PRE_EMP=0.95, FRAME_SIZE=0.025,
-        FRAME_STRIDE=0.01, NFFT=512, N_FILT=26, num_ceps = 13,
-        cep_lifter = 22, appendEnergy = True, verbose=True, SHOW_AS_FULL_LIST = False):
-        self.fs = fs
-        self.PRE_EMP = PRE_EMP
+def fbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
+          nfilt=26,nfft=512,lowfreq=0,highfreq=None,preemph=0.97,
+          winfunc=lambda x:numpy.ones((x,))):
+    """Compute Mel-filterbank energy features from an audio signal.
 
-        self.FRAME_LEN = int(math.ceil(FRAME_SIZE * fs))
-        self.FRAME_STEP = int(math.ceil(FRAME_STRIDE * fs))
+    :param signal: the audio signal from which to compute features. Should be an N*1 array
+    :param samplerate: the samplerate of the signal we are working with.
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)    
+    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)
+    :param nfilt: the number of filters in the filterbank, default 26.
+    :param nfft: the FFT size. Default is 512.
+    :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
+    :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
+    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97.
+    :param winfunc: the analysis window to apply to each frame. By default no window is applied.
+    :returns: 2 values. The first is a numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector. The
+        second return value is the energy in each frame (total energy, unwindowed)
+    """          
+    highfreq= highfreq or samplerate/2
+    signal = sigproc.preemphasis(signal,preemph)
+    frames = sigproc.framesig(signal, winlen*samplerate, winstep*samplerate, winfunc)
+    pspec = sigproc.powspec(frames,nfft)
+    energy = numpy.sum(pspec,1) # this stores the total energy in each frame
+    energy = numpy.where(energy == 0,numpy.finfo(float).eps,energy) # if energy is zero, we get problems with log
+        
+    fb = get_filterbanks(nfilt,nfft,samplerate,lowfreq,highfreq)
+    feat = numpy.dot(pspec,fb.T) # compute the filterbank energies
+    feat = numpy.where(feat == 0,numpy.finfo(float).eps,feat) # if feat is zero, we get problems with log
+    
+    return feat,energy
 
-        self.NFFT = NFFT
-        self.N_FILT = N_FILT
-        self.num_ceps = num_ceps
-        self.cep_lifter = cep_lifter
-        self.appendEnergy = appendEnergy
-        self.verbose = verbose
-        #Display full numpy array on console
-        if(SHOW_AS_FULL_LIST):
-            np.set_printoptions(threshold=np.nan)
+def logfbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
+          nfilt=26,nfft=512,lowfreq=0,highfreq=None,preemph=0.97):
+    """Compute log Mel-filterbank energy features from an audio signal.
 
-    def dprint(self, message):
-        if self.verbose:
-            if sys.version_info[0] < 3:
-                print (message)
-            else:
-                print(message)
+    :param signal: the audio signal from which to compute features. Should be an N*1 array
+    :param samplerate: the samplerate of the signal we are working with.
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)    
+    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)    
+    :param nfilt: the number of filters in the filterbank, default 26.
+    :param nfft: the FFT size. Default is 512.
+    :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
+    :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
+    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97. 
+    :returns: A numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector. 
+    """          
+    feat,energy = fbank(signal,samplerate,winlen,winstep,nfilt,nfft,lowfreq,highfreq,preemph)
+    return numpy.log(feat)
 
-    def extract(self, signal):
-        if signal.ndim > 1:
-            self.dprint("INFO: Input signal has more than 1 channel; the channels will be averaged.")
-            signal = mean(signal, axis=1)
-        assert len(signal) > 5 * self.FRAME_LEN, "Signal too short!"
+def ssc(signal,samplerate=16000,winlen=0.025,winstep=0.01,
+        nfilt=26,nfft=512,lowfreq=0,highfreq=None,preemph=0.97,
+        winfunc=lambda x:numpy.ones((x,))):
+    """Compute Spectral Subband Centroid features from an audio signal.
 
-        # Remove silence
-        signal = remove_silence(self.fs, signal)
+    :param signal: the audio signal from which to compute features. Should be an N*1 array
+    :param samplerate: the samplerate of the signal we are working with.
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)    
+    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)    
+    :param nfilt: the number of filters in the filterbank, default 26.
+    :param nfft: the FFT size. Default is 512.
+    :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
+    :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
+    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97.
+    :param winfunc: the analysis window to apply to each frame. By default no window is applied.
+    :returns: A numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector. 
+    """          
+    highfreq= highfreq or samplerate/2
+    signal = sigproc.preemphasis(signal,preemph)
+    frames = sigproc.framesig(signal, winlen*samplerate, winstep*samplerate, winfunc)
+    pspec = sigproc.powspec(frames,nfft)
+    pspec = numpy.where(pspec == 0,numpy.finfo(float).eps,pspec) # if things are all zeros we get problems
+    
+    fb = get_filterbanks(nfilt,nfft,samplerate,lowfreq,highfreq)
+    feat = numpy.dot(pspec,fb.T) # compute the filterbank energies
+    R = numpy.tile(numpy.linspace(1,samplerate/2,numpy.size(pspec,1)),(numpy.size(pspec,0),1))
+    
+    return numpy.dot(pspec*R,fb.T) / feat
+    
+def hz2mel(hz):
+    """Convert a value in Hertz to Mels
 
-        #Pre Emphasis
-        #signal = signal[0] + signal[1]-a*signal[0] + signal[2]-a*signal[1] + ...
-        signal = np.append(signal[0], signal[1:] - self.PRE_EMP * signal[:-1])
+    :param hz: a value in Hz. This can also be a numpy array, conversion proceeds element-wise.
+    :returns: a value in Mels. If an array was passed in, an identical sized array is returned.
+    """
+    return 2595 * numpy.log10(1+hz/700.)
+    
+def mel2hz(mel):
+    """Convert a value in Mels to Hertz
 
-        #framming the signal
-        signal_length = len(signal)
-        if signal_length <= self.FRAME_LEN:
-            num_frames = 1
-        else:
-            num_frames = 1 + int(math.ceil((1.0*signal_length-self.FRAME_LEN)/self.FRAME_STEP))
+    :param mel: a value in Mels. This can also be a numpy array, conversion proceeds element-wise.
+    :returns: a value in Hertz. If an array was passed in, an identical sized array is returned.
+    """
+    return 700*(10**(mel/2595.0)-1)
 
-        pad_signal_length = int((num_frames-1)*self.FRAME_STEP + self.FRAME_LEN)
-        z = np.zeros((pad_signal_length - signal_length,))
-        pad_signal = np.concatenate((signal, z))
-        indices = np.tile(np.arange(0, self.FRAME_LEN), (num_frames, 1)) + np.tile(np.arange(0, num_frames * self.FRAME_STEP, self.FRAME_STEP), (self.FRAME_LEN, 1)).T
-        indices = np.array(indices,dtype=np.int32)
-        frames = pad_signal[indices]
+def get_filterbanks(nfilt=20,nfft=512,samplerate=16000,lowfreq=0,highfreq=None):
+    """Compute a Mel-filterbank. The filters are stored in the rows, the columns correspond
+    to fft bins. The filters are returned as an array of size nfilt * (nfft/2 + 1)
 
-        #windowing the signal
-        #passing the signal through hamming window
-        win = np.hamming(self.FRAME_LEN)
-        frames *= win
+    :param nfilt: the number of filters in the filterbank, default 20.
+    :param nfft: the FFT size. Default is 512.
+    :param samplerate: the samplerate of the signal we are working with. Affects mel spacing.
+    :param lowfreq: lowest band edge of mel filters, default 0 Hz
+    :param highfreq: highest band edge of mel filters, default samplerate/2
+    :returns: A numpy array of size nfilt * (nfft/2 + 1) containing filterbank. Each row holds 1 filter.
+    """
+    highfreq= highfreq or samplerate/2
+    assert highfreq <= samplerate/2, "highfreq is greater than samplerate/2"
+    
+    # compute points evenly spaced in mels
+    lowmel = hz2mel(lowfreq)
+    highmel = hz2mel(highfreq)
+    melpoints = numpy.linspace(lowmel,highmel,nfilt+2)
+    # our points are in Hz, but we use fft bins, so we have to convert
+    #  from Hz to fft bin number
+    bin = numpy.floor((nfft+1)*mel2hz(melpoints)/samplerate)
 
-        #Magnitude spectrum
-        if np.shape(frames)[1] > self.NFFT:
-            self.dprint("Warning, frame length (%d) is greater than FFT size (%d), frame will be truncated. Increase NFFT to avoid."%(np.shape(frames)[1], self.NFFT))
+    fbank = numpy.zeros([nfilt,nfft//2+1])
+    for j in range(0,nfilt):
+        for i in range(int(bin[j]), int(bin[j+1])):
+            fbank[j,i] = (i - bin[j]) / (bin[j+1]-bin[j])
+        for i in range(int(bin[j+1]), int(bin[j+2])):
+            fbank[j,i] = (bin[j+2]-i) / (bin[j+2]-bin[j+1])
+    return fbank                 
+    
+def lifter(cepstra, L=22):
+    """Apply a cepstral lifter the the matrix of cepstra. This has the effect of increasing the
+    magnitude of the high frequency DCT coeffs.
+    
+    :param cepstra: the matrix of mel-cepstra, will be numframes * numcep in size.
+    :param L: the liftering coefficient to use. Default is 22. L <= 0 disables lifter.
+    """
+    if L > 0:
+        nframes,ncoeff = numpy.shape(cepstra)
+        n = numpy.arange(ncoeff)
+        lift = 1 + (L/2.)*numpy.sin(numpy.pi*n/L)
+        return lift*cepstra
+    else:
+        # values of L <= 0, do nothing
+        return cepstra
 
-        mag_frames = np.absolute(np.fft.rfft(frames, self.NFFT))
+def delta(feat, N):
+    """Compute delta features from a feature vector sequence.
 
-        #Power Spectrum
-        pspec = ((1.0 / self.NFFT) * ((mag_frames) ** 2))
-
-
-        #Filter Bank
-        pspec = np.where(pspec == 0,np.finfo(float).eps,pspec) # if things are all zeros we get problems
-
-        energy = np.sum(pspec,1) #this stores the total energy in each frame
-        energy = np.where(energy == 0,np.finfo(float).eps,energy) # if energy is zero, we get problems with log
-
-        fbank = self.get_filterbanks()
-        filter_banks = np.dot(pspec, fbank)
-        filter_banks = np.where(filter_banks == 0, np.finfo(float).eps, filter_banks)  # Numerical Stability
-
-        # MFCC Calculation
-        filter_banks = np.log(filter_banks)
-        mfcc = dct(filter_banks, type=2, axis=1, norm='ortho')[:, : self.num_ceps] # Keep 2-13
-
-
-        nframes, ncoeff = np.shape(mfcc)
-        n = np.arange(ncoeff)
-        lift = 1 + (self.cep_lifter / 2) * np.sin(np.pi * n / self.cep_lifter)
-        mfcc *= lift
-        if self.appendEnergy:
-            mfcc[:,0] = np.log(energy) # replace first cepstral coefficient with log of frame energy
-        return mfcc
-
-
-    def hz_to_mel(self, hz):
-        """Convert a value in Hertz to Mels
-
-        :param hz: a value in Hz. This can also be a numpy array, conversion proceeds element-wise.
-        :returns: a value in Mels. If an array was passed in, an identical sized array is returned.
-        """
-        return 2595 * np.log10(1+hz/700.)
-
-
-    def mel_to_hz(self, mel):
-        """Convert a value in Mels to Hertz
-
-        :param mel: a value in Mels. This can also be a numpy array, conversion proceeds element-wise.
-        :returns: a value in Hertz. If an array was passed in, an identical sized array is returned.
-        """
-        return 700*(10**(mel/2595.0)-1)
-
-    def get_filterbanks(self):
-        """Compute a Mel-filterbank. The filters are stored in the rows, the columns correspond
-        to fft bins. The filters are returned as an array of size nfilt * (nfft/2 + 1)
-
-        :param nfilt: the number of filters in the filterbank, default 20.
-        :param NFFT: the FFT size. Default is 512.
-        :param samplerate: the samplerate of the signal we are working with. Affects mel spacing.
-        :param lowfreq: lowest band edge of mel filters, default 0 Hz
-        :param highfreq: highest band edge of mel filters, default samplerate/2
-        :returns: A numpy array of size nfilt * (nfft/2 + 1) containing filterbank. Each row holds 1 filter.
-        """
-        low_freq = 0
-        high_freq = self.fs / 2
-        low_freq_mel = self.hz_to_mel(low_freq)
-        high_freq_mel = self.hz_to_mel(high_freq)
-        mel_points = np.linspace(low_freq_mel, high_freq_mel, self.N_FILT + 2)  # Equally spaced in Mel scale
-        bin = np.floor((self.NFFT + 1) * self.mel_to_hz(mel_points) / self.fs)
-
-
-        fbank = np.zeros((self.N_FILT, int(np.floor(self.NFFT / 2 + 1))))
-        fbank = np.zeros([self.N_FILT,self.NFFT//2+1])
-        for j in range(0,self.N_FILT):
-            for i in range(int(bin[j]), int(bin[j+1])):
-                fbank[j,i] = (i - bin[j]) / (bin[j+1]-bin[j])
-            for i in range(int(bin[j+1]), int(bin[j+2])):
-                fbank[j,i] = (bin[j+2]-i) / (bin[j+2]-bin[j+1])
-
-        return fbank.T #transpose of the matrix
+    :param feat: A numpy array of size (NUMFRAMES by number of features) containing features. Each row holds 1 feature vector.
+    :param N: For each frame, calculate delta features based on preceding and following N frames
+    :returns: A numpy array of size (NUMFRAMES by number of features) containing delta features. Each row holds 1 delta feature vector.
+    """
+    if N < 1:
+        raise ValueError('N must be an integer >= 1')
+    NUMFRAMES = len(feat)
+    denominator = 2 * sum([i**2 for i in range(1, N+1)])
+    delta_feat = numpy.empty_like(feat)
+    padded = numpy.pad(feat, ((N, N), (0, 0)), mode='edge')   # padded version of feat
+    for t in range(NUMFRAMES):
+        delta_feat[t] = numpy.dot(numpy.arange(-N, N+1), padded[t : t+2*N+1]) / denominator   # [t : t+2*N+1] == [(N+t)-N : (N+t)+N+1]
+    return delta_feat
