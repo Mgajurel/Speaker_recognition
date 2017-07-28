@@ -32,7 +32,7 @@ def remove_silence(fs, signal,
     #       so the energy of the signal is somewhat
     #       right
     average_energy = np.sum(signal ** 2) / float(siglen)
-    print (average_energy)
+    print ("Average energy =", average_energy)
     #print "Avg Energy: ", average_energy
     while i < siglen:
         subsig = signal[i:i + frame_length]

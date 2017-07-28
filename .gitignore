@@ -99,3 +99,12 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# runtime output
+*.csv
+*.pyc
+metadata.txt
+model.pkl
+
+# test file
+test.py
