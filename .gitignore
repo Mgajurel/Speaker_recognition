@@ -103,4 +103,5 @@ ENV/
 # runtime output
 *.csv
 *.txt
-*.pkl*.pyc
+*.pkl
+*.pyc
