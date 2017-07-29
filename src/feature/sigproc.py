@@ -117,6 +117,16 @@ def preemphasis(signal,coeff=0.95):
     """    
     return numpy.append(signal[0],signal[1:]-coeff*signal[:-1])
 
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
+# $File: silence.py
+# $Date: Tue Jun 10 15:18:40 2014 +0800
+# $Author: Xinyu Zhou <zxytim[at]gmail[dot]com>
+
+import sys
+import scipy.io.wavfile as wavfile
+import numpy as np
+
 def remove_silence(fs, signal,
         frame_duration = 0.02,
         frame_shift = 0.01,
@@ -141,6 +151,7 @@ def remove_silence(fs, signal,
     #       so the energy of the signal is somewhat
     #       right
     average_energy = np.sum(signal ** 2) / float(siglen)
+    # print (average_energy)
     #print "Avg Energy: ", average_energy
     while i < siglen:
         subsig = signal[i:i + frame_length]
@@ -156,6 +167,12 @@ def remove_silence(fs, signal,
     if is_unsigned:
         retsig = retsig + typeinfo.max / 2
     return retsig.astype(orig_dtype)
+
+def task(fpath, new_fpath):
+    fs, signal = wavfile.read(fpath)
+    signal_out = remove_silence(fs, signal)
+    wavfile.write(new_fpath, fs, signal_out)
+    return fpath
 
 
 
