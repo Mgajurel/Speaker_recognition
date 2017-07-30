@@ -7,7 +7,6 @@ import pickle
 import alsaaudio, wave
 from feature.sigproc import remove_silence
 
-
 debug = True
 
 def print_label(text, character="*"):
@@ -19,7 +18,7 @@ def dprint(message):
         print(message)
 
 class NeuralNetwork:
-    def __init__(self, filepath="files", is_delta_mode=False, verbose=False, accuracy=0.2):
+    def __init__(self, filepath="files", is_delta_mode=False, verbose=False):
         self.verbose = verbose      
         self.message = ""
         self.filepath = filepath
@@ -167,7 +166,7 @@ class NeuralNetwork:
 
         return self.message
 
-    # predict the output from a given test audio files
+    # predict the output from given test audio files
     def test_predict(self):
         self.message = "Prediction result:"
         # Load files
@@ -191,13 +190,18 @@ class NeuralNetwork:
             self.message += "\nTest file path: %s/test" %wav_path
 
             for wav_file in wav_files:
+                self.message += "\nGiven wav file: %s" %wav_file
                 fs, signal = wavfile.read(wav_path+"/"+ wav_file)
                 # remove silence
-                signal = remove_silence(fs, signal)
-                self.message += "\nGiven wav file: %s" %wav_file                
-                name = self.predict(signal, fs)
-                self.message += "\nThe user is %s" %name
-                
+                signal = remove_silence(fs, signal)               
+                # Extract feature
+                mfcc_feat = mfcc(signal, fs)
+                if self.is_delta:
+                    mfcc_feat = delta(mfcc_feat, 2)
+                # Compute output from feature    
+                output = self.NN.predict(mfcc_feat)                
+                name = self.get_label(output)
+                self.message += "\nThe user is %s" %name                
         except (FileNotFoundError, IOError):
                 print("Wrong file or file path")
 
@@ -205,18 +209,7 @@ class NeuralNetwork:
             print(self.message)
 
         return self.message
-
-    # Predict from a given wav signal
-    def predict(self, signal, fs):
-        mfcc_feat = mfcc(signal, fs)
-
-        if self.is_delta:
-            mfcc_feat = delta(mfcc_feat, 2)
-            
-        output = self.NN.predict(mfcc_feat)
-
-        return self.get_label(output)
-
+    # Real time prediction
     def prediction(self):
         #Record wav file ~0.5 sec
         record_wav("test.wav")
@@ -233,7 +226,6 @@ class NeuralNetwork:
         output = self.NN.predict(mfcc_feat)
 
         return self.get_label(output)
-
     # Get a label from the given output of prediction
     def get_label(self, output):
         n = output.shape[1]
@@ -266,6 +258,12 @@ class NeuralNetwork:
             self.message += "\nAccuracy = %.2f%%" %round(accuracy, 2)
 
         return label
+
+    def set_delta(self, delta):
+        self.is_delta = delta
+
+    def set_verbose(self, verbose):
+        self.verbose = verbose
     
 def record_wav(filename):
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE)

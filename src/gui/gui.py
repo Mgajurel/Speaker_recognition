@@ -41,7 +41,6 @@ class Ui(QtWidgets.QDialog):
         super(Ui, self).__init__()
         uic.loadUi(uipath, self)
         self.status = ""
-        self.finished = pyqtSignal()
         self.output = ""
         self.isPredicting=False
 
@@ -59,10 +58,18 @@ class Ui(QtWidgets.QDialog):
         self.btn_train.clicked.connect(self.start_train)
         self.btn_predict.clicked.connect(self.start_predict)
         self.btn_test_predict.clicked.connect(self.start_test_predict)
+        self.checkBox_verbose.clicked.connect(self.verbose_changed)
+        self.checkBox_delta_mode.clicked.connect(self.delta_changed)
 
         # Show the form 
         self.show()
         self.nn = NeuralNetwork(is_delta_mode=False, verbose=verbose)
+
+    def verbose_changed(self):
+        self.nn.set_verbose(self.checkBox_verbose.isChecked())
+
+    def delta_changed(self):
+        self.nn.set_delta(self.checkBox_delta_mode.isChecked())
 
     def start_train(self):
         if(self.status == "training" or self.status != ""):
