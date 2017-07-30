@@ -1,4 +1,7 @@
 from scipy.io import wavfile
+if __name__ == '__main__':
+    import sys
+    sys.path.append("..")
 from feature.MFCC import mfcc
 from feature.MFCC import delta
 import os
@@ -54,7 +57,7 @@ class NeuralNetwork:
         is_firstrun = True
         row = 0
         col = 0
-        userList = open("files/metadata.txt", "w")
+        userList = open(self.filepath+"/metadata.txt", "w")
 
         # Loop until all files are converted to csv
         for audio in wav_files:
@@ -281,3 +284,10 @@ def record_wav(filename):
         w.writeframes(data)
 
     w.close()
+
+if __name__ == '__main__':
+    nn = NeuralNetwork(filepath="../files")
+    print_label("Training")
+    print(nn.train())
+    print_label("Testing from file...")
+    print(nn.test_predict())

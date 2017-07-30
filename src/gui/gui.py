@@ -1,11 +1,11 @@
 from PyQt5 import uic, QtWidgets
+from PyQt5.QtCore import QThread
+
+if __name__ == '__main__':
+    import sys    
+    sys.path.append("..")
+
 from nn.neural_network import NeuralNetwork
-
-import sys
-import time
-
-from PyQt5.QtCore import (QCoreApplication, QObject, QRunnable, QThread,
-                          QThreadPool, pyqtSignal)
 
 def print_label(text, character="*"):
     star = int((80-len(text))/2)
@@ -133,7 +133,8 @@ class Ui(QtWidgets.QDialog):
         self.btn_test_predict.setEnabled(True)
 
 if __name__ == '__main__':
-    import sys
     app = QtWidgets.QApplication(sys.argv)
-    window = Ui()
+    import os
+    os.chdir("..")
+    window = Ui(uipath="gui/user_interface.ui")
     sys.exit(app.exec_())
