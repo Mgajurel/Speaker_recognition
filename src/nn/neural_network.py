@@ -44,7 +44,7 @@ class NeuralNetwork:
 
         if self.verbose:
             print("Delta Mode enable = ", is_delta_mode)
-
+    # Train the network and generate model.pkl file and csv file
     def train(self):
         self.message = "Training result:"
         # File path
@@ -174,7 +174,6 @@ class NeuralNetwork:
         userList.close()
 
         return self.message
-
     # predict the output from given test audio files
     def test_predict(self):
         self.message = "Prediction result:"
@@ -270,10 +269,10 @@ class NeuralNetwork:
             self.message += "\nTotal count = %d" %np.amax(count_array)
 
         return label
-
+    # set for delta mode
     def set_delta(self, delta):
         self.is_delta = delta
-
+    # To set verbose mode to display additional information to console
     def set_verbose(self, verbose):
         self.verbose = verbose
 
