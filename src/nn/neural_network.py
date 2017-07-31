@@ -1,14 +1,18 @@
 from scipy.io import wavfile
-if __name__ == '__main__':
-    import sys
-    sys.path.append("..")
-from feature.MFCC import mfcc
-from feature.MFCC import delta
 import os
 import numpy as np
 import pickle
 import alsaaudio, wave
+
+if __name__ == '__main__':
+    import sys
+    sys.path.append("..")
+
+from feature.MFCC import mfcc
+from feature.MFCC import delta
+
 from feature.sigproc import remove_silence
+from feature.sigproc import silence_zone
 
 debug = True
 
@@ -28,12 +32,15 @@ class NeuralNetwork:
         self.is_delta = is_delta_mode
 
         # Load files
-        self.NN = pickle.load(open(self.filepath+'/model.pkl','rb'))
+        try:
+            self.NN = pickle.load(open(self.filepath+'/model.pkl','rb'))
 
-        # Load user names
-        userList = open(self.filepath+"/metadata.txt", "r")
-        self.users = userList.readlines()
-        userList.close()
+            # Load user names
+            userList = open(self.filepath+"/metadata.txt", "r")
+            self.users = userList.readlines()
+            userList.close()
+        except:
+            print("Model and metadata.txt not found.")
 
         if self.verbose:
             print("Delta Mode enable = ", is_delta_mode)
@@ -212,22 +219,24 @@ class NeuralNetwork:
 
         return self.message
     # Real time prediction
-    def prediction(self):
+    def prediction(self, noise_level=2000000):
         #Record wav file ~0.5 sec
         record_wav("test.wav")
 
-        #Extract feature from thefile
         fs, signal = wavfile.read("test.wav")
         signal = remove_silence(fs, signal)
 
+        if(silence_zone(signal, noise_level)):
+            return "Silent"
+        # Extract feature from the file
         mfcc_feat = mfcc(signal, fs)
-
         if self.is_delta:
             mfcc_feat = delta(mfcc_feat, 2)
 
         output = self.NN.predict(mfcc_feat)
+        username = self.get_label(output)
 
-        return self.get_label(output)
+        return username
     # Get a label from the given output of prediction
     def get_label(self, output):
         n = output.shape[1]
@@ -258,6 +267,7 @@ class NeuralNetwork:
             self.message += "\nPrediction Outcome"
             self.message += "\nCount: %s" %np.array_str(count_array)
             self.message += "\nAccuracy = %.2f%%" %round(accuracy, 2)
+            self.message += "\nTotal count = %d" %np.amax(count_array)
 
         return label
 
@@ -267,7 +277,7 @@ class NeuralNetwork:
     def set_verbose(self, verbose):
         self.verbose = verbose
 
-def record_wav(filename):
+def record_wav(filename, time=7):
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE)
     inp.setchannels(1)
     inp.setrate(8000)
@@ -278,7 +288,7 @@ def record_wav(filename):
     w.setsampwidth(2)
     w.setframerate(8000)
 
-    for i in range(10): #~0.5 seconds
+    for i in range(time): #~0.5 seconds
         l, data = inp.read()
         w.writeframes(data)
 
