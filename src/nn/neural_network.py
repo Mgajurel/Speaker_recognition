@@ -22,7 +22,7 @@ def dprint(message):
 
 class NeuralNetwork:
     def __init__(self, filepath="files", is_delta_mode=False, verbose=False):
-        self.verbose = verbose      
+        self.verbose = verbose
         self.message = ""
         self.filepath = filepath
         self.is_delta = is_delta_mode
@@ -64,17 +64,16 @@ class NeuralNetwork:
             fs, signal = wavfile.read(wavpath+"/"+audio)
             # remove silence
             signal = remove_silence(fs, signal)
-
+            # Extract features from audio signal
             mfcc_feat = mfcc(signal, fs)
-            
             if self.is_delta:
-                mfcc_feat = delta(mfcc_feat, 2) 
+                mfcc_feat = delta(mfcc_feat, 2)
 
             # save feature as csv files for debugging
             np.savetxt(self.filepath+"/csv/"+audio[7:-4]+".csv", mfcc_feat, fmt='%.8f', delimiter=',')
-            
+
             # save the username to database
-            userList.write(audio[7:-4]+"\n") 
+            userList.write(audio[7:-4]+"\n")
             if self.verbose:
                 print("\nFile:", audio)
                 print("Feature: ", mfcc_feat.shape)
@@ -116,7 +115,7 @@ class NeuralNetwork:
             print_label("Neural Network modelling", character="-")
             print("Modelling started, this may take a while")
 
-        # Features and target are made now train them       
+        # Features and target are made now train them
 
         from sklearn.model_selection import train_test_split
         X_train, X_test, y_train, y_test = train_test_split(features, target)
@@ -138,7 +137,7 @@ class NeuralNetwork:
         mlp.fit(X_train,y_train)
         self.message += "\nTotal iteration run: %d" %mlp.n_iter_
 
-        predictions = mlp.predict(X_test)   
+        predictions = mlp.predict(X_test)
 
         # Display confusion matrix
         correct = 0
@@ -196,15 +195,15 @@ class NeuralNetwork:
                 self.message += "\nGiven wav file: %s" %wav_file
                 fs, signal = wavfile.read(wav_path+"/"+ wav_file)
                 # remove silence
-                signal = remove_silence(fs, signal)               
+                signal = remove_silence(fs, signal)
                 # Extract feature
                 mfcc_feat = mfcc(signal, fs)
                 if self.is_delta:
                     mfcc_feat = delta(mfcc_feat, 2)
-                # Compute output from feature    
-                output = self.NN.predict(mfcc_feat)                
+                # Compute output from feature
+                output = self.NN.predict(mfcc_feat)
                 name = self.get_label(output)
-                self.message += "\nThe user is %s" %name                
+                self.message += "\nThe user is %s" %name
         except (FileNotFoundError, IOError):
                 print("Wrong file or file path")
 
@@ -225,7 +224,7 @@ class NeuralNetwork:
 
         if self.is_delta:
             mfcc_feat = delta(mfcc_feat, 2)
-            
+
         output = self.NN.predict(mfcc_feat)
 
         return self.get_label(output)
@@ -248,7 +247,7 @@ class NeuralNetwork:
                 count_array[n] += 1
 
         accuracy = np.amax(count_array) / output.shape[0] * 100
-        
+
         if(count_array.argmax() < len(self.users)):
             if accuracy > 20:
                 label = self.users[count_array.argmax()]
@@ -267,7 +266,7 @@ class NeuralNetwork:
 
     def set_verbose(self, verbose):
         self.verbose = verbose
-    
+
 def record_wav(filename):
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE)
     inp.setchannels(1)
