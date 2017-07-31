@@ -2,7 +2,8 @@ from scipy.io import wavfile
 import os
 import numpy as np
 import pickle
-import alsaaudio, wave
+from nn.recorder import record_to_file
+# import alsaaudio, wave
 
 if __name__ == '__main__':
     import sys
@@ -75,7 +76,7 @@ class NeuralNetwork:
             mfcc_feat = mfcc(signal, fs)
             if self.is_delta:
                 mfcc_feat = delta(mfcc_feat, 2)
-
+            mfcc_feat = mfcc_feat[0:300]
             # save feature as csv files for debugging
             np.savetxt(self.filepath+"/csv/"+audio[7:-4]+".csv", mfcc_feat, fmt='%.8f', delimiter=',')
 
@@ -138,8 +139,8 @@ class NeuralNetwork:
 
         from sklearn.neural_network import MLPClassifier
 
-        mlp = MLPClassifier(hidden_layer_sizes=(30, 30, 30),
-            max_iter=10000, tol=1e-6)
+        mlp = MLPClassifier(hidden_layer_sizes=(100, 200, 100),
+            max_iter=10000, tol=1e-6, random_state=1, shuffle = True, activation = 'logistic')
 
         mlp.fit(X_train,y_train)
         self.message += "\nTotal iteration run: %d" %mlp.n_iter_
@@ -220,8 +221,8 @@ class NeuralNetwork:
     # Real time prediction
     def prediction(self, noise_level=2000000):
         #Record wav file ~0.5 sec
-        record_wav("test.wav")
-
+        # record_wav("test.wav")
+        record_to_file(filename="test.wav",RECORD_SECONDS=1)
         fs, signal = wavfile.read("test.wav")
         signal = remove_silence(fs, signal)
 
@@ -276,22 +277,9 @@ class NeuralNetwork:
     def set_verbose(self, verbose):
         self.verbose = verbose
 
+
 def record_wav(filename, time=7):
-    inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE)
-    inp.setchannels(1)
-    inp.setrate(8000)
-    inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-    inp.setperiodsize(1024)
-    w = wave.open(filename, 'w')
-    w.setnchannels(1)
-    w.setsampwidth(2)
-    w.setframerate(8000)
-
-    for i in range(time): #~0.5 seconds
-        l, data = inp.read()
-        w.writeframes(data)
-
-    w.close()
+    pass
 
 if __name__ == '__main__':
     nn = NeuralNetwork(filepath="../files")
