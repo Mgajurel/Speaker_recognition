@@ -23,8 +23,6 @@ def mfcc(signal,samplerate=16000,winlen=0.025,winstep=0.01,numcep=13,
     :param winfunc: the analysis window to apply to each frame. By default no window is applied.
     :returns: A numpy array of size (NUMFRAMES by numcep) containing features. Each row holds 1 feature vector.
     """
-    # Remove silence
-    signal = sigproc.remove_silence(samplerate, signal)
 
     feat,energy = fbank(signal,samplerate,winlen,winstep,nfilt,nfft,lowfreq,highfreq,preemph,winfunc)
     feat = numpy.log(feat)
