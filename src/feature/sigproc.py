@@ -117,7 +117,7 @@ def preemphasis(signal,coeff=0.95):
     """
     return numpy.append(signal[0],signal[1:]-coeff*signal[:-1])
 
-def silence_zone(signal, noise_level):
+def silence_zone(signal, noise_level, verbose=False):
     orig_dtype = type(signal[0])
     typeinfo = np.iinfo(orig_dtype)
     is_unsigned = typeinfo.min >= 0
@@ -127,7 +127,8 @@ def silence_zone(signal, noise_level):
 
     siglen = len(signal)
     average_energy = np.sum(signal ** 2) / float(siglen)
-    # print("Average Energy:", average_energy)
+    if verbose:
+        print("Average Energy=%d, max silence energy=%d"%(average_energy, noise_level))
     return noise_level > average_energy
 
 def remove_silence(fs, signal,

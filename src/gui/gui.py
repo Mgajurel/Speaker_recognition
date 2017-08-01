@@ -2,7 +2,7 @@ from PyQt5 import uic, QtWidgets
 from PyQt5.QtCore import QThread
 
 if __name__ == '__main__':
-    import sys    
+    import sys
     sys.path.append("..")
 
 from nn.neural_network import NeuralNetwork
@@ -27,7 +27,7 @@ class PredictionThread(QThread):
 
     def run(self):
         self.main.start_predict_thread()
-        
+
 class TestPredictionThread(QThread):
     def __init__(self, main):
         QThread.__init__(self)
@@ -61,7 +61,7 @@ class Ui(QtWidgets.QDialog):
         self.checkBox_verbose.clicked.connect(self.verbose_changed)
         self.checkBox_delta_mode.clicked.connect(self.delta_changed)
 
-        # Show the form 
+        # Show the form
         self.show()
         self.nn = NeuralNetwork(is_delta_mode=False, verbose=verbose)
 
@@ -94,7 +94,7 @@ class Ui(QtWidgets.QDialog):
         if self.isPredicting:
             # Already predicting so stop prediction
             self.isPredicting = False
-            self.predict_th.wait()  #Wait to complete the thread            
+            self.predict_th.wait()  #Wait to complete the thread
             self.btn_predict.setText("Predict")
             self.lbl_output.setText("Prediction stopped.")
 
@@ -108,14 +108,8 @@ class Ui(QtWidgets.QDialog):
         self.output = self.nn.prediction()
 
     def predict_fin(self):
-        if self.output == None:
-            self.lbl_output.setText("Anynomous")
-        else:
-            self.lbl_output.setText("The user is "+ self.output)
-            self.output="Anonymous"
-
+        self.lbl_output.setText(self.output)
         if self.isPredicting:
-            self.predict_th.wait()
             self.predict_th.start()
         else:
             self.lbl_output.setText("Prediction complete")
