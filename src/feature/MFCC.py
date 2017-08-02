@@ -17,8 +17,8 @@ def mfcc(signal,samplerate=16000,winlen=0.025,winstep=0.01,numcep=13,
     :param nfft: the FFT size. Default is 512.
     :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
     :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
-    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97. 
-    :param ceplifter: apply a lifter to final cepstral coefficients. 0 is no lifter. Default is 22. 
+    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97.
+    :param ceplifter: apply a lifter to final cepstral coefficients. 0 is no lifter. Default is 22.
     :param appendEnergy: if this is true, the zeroth cepstral coefficient is replaced with the log of the total frame energy.
     :param winfunc: the analysis window to apply to each frame. By default no window is applied.
     :returns: A numpy array of size (NUMFRAMES by numcep) containing features. Each row holds 1 feature vector.
@@ -31,6 +31,41 @@ def mfcc(signal,samplerate=16000,winlen=0.025,winstep=0.01,numcep=13,
     if appendEnergy: feat[:,0] = numpy.log(energy) # replace first cepstral coefficient with log of frame energy
     return feat
 
+def mffcc_from_folder(folderpath):
+    from scipy.io import wavfile
+    import os
+    wav_files = [f for f in os.listdir(folderpath) if f.endswith('.wav')]
+    n=len(wav_files)
+    if n < 1:
+        assert("No wav files found")
+        return
+
+    features = numpy.empty(shape=[0,13])
+    target = numpy.empty(shape=[0],dtype=int)
+    users = []
+    wav_dict = {}
+    col = 0
+    row = 0
+
+    for audio in wav_files:
+        path = folderpath+"/"+audio
+        username = audio[2:-4]
+        if username in wav_dict:
+            pass
+        else:
+            users.append(username)
+            wav_dict[username] = col
+            col += 1
+
+        fs, signal = wavfile.read(path)
+        mfcc_feat = mfcc(signal, fs)
+        features = numpy.vstack((features, mfcc_feat))
+        for row in range(featuers.shape[0]):
+            target[row] = wav_dict[username]
+            row += 1
+
+    return features, target , users
+
 def fbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
           nfilt=26,nfft=512,lowfreq=0,highfreq=None,preemph=0.97,
           winfunc=lambda x:numpy.ones((x,))):
@@ -38,7 +73,7 @@ def fbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
 
     :param signal: the audio signal from which to compute features. Should be an N*1 array
     :param samplerate: the samplerate of the signal we are working with.
-    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)    
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)
     :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)
     :param nfilt: the number of filters in the filterbank, default 26.
     :param nfft: the FFT size. Default is 512.
@@ -48,18 +83,18 @@ def fbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
     :param winfunc: the analysis window to apply to each frame. By default no window is applied.
     :returns: 2 values. The first is a numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector. The
         second return value is the energy in each frame (total energy, unwindowed)
-    """          
+    """
     highfreq= highfreq or samplerate/2
     signal = sigproc.preemphasis(signal,preemph)
     frames = sigproc.framesig(signal, winlen*samplerate, winstep*samplerate, winfunc)
     pspec = sigproc.powspec(frames,nfft)
     energy = numpy.sum(pspec,1) # this stores the total energy in each frame
     energy = numpy.where(energy == 0,numpy.finfo(float).eps,energy) # if energy is zero, we get problems with log
-        
+
     fb = get_filterbanks(nfilt,nfft,samplerate,lowfreq,highfreq)
     feat = numpy.dot(pspec,fb.T) # compute the filterbank energies
     feat = numpy.where(feat == 0,numpy.finfo(float).eps,feat) # if feat is zero, we get problems with log
-    
+
     return feat,energy
 
 def logfbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
@@ -68,15 +103,15 @@ def logfbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
 
     :param signal: the audio signal from which to compute features. Should be an N*1 array
     :param samplerate: the samplerate of the signal we are working with.
-    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)    
-    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)    
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)
+    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)
     :param nfilt: the number of filters in the filterbank, default 26.
     :param nfft: the FFT size. Default is 512.
     :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
     :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
-    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97. 
-    :returns: A numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector. 
-    """          
+    :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97.
+    :returns: A numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector.
+    """
     feat,energy = fbank(signal,samplerate,winlen,winstep,nfilt,nfft,lowfreq,highfreq,preemph)
     return numpy.log(feat)
 
@@ -87,28 +122,28 @@ def ssc(signal,samplerate=16000,winlen=0.025,winstep=0.01,
 
     :param signal: the audio signal from which to compute features. Should be an N*1 array
     :param samplerate: the samplerate of the signal we are working with.
-    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)    
-    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)    
+    :param winlen: the length of the analysis window in seconds. Default is 0.025s (25 milliseconds)
+    :param winstep: the step between successive windows in seconds. Default is 0.01s (10 milliseconds)
     :param nfilt: the number of filters in the filterbank, default 26.
     :param nfft: the FFT size. Default is 512.
     :param lowfreq: lowest band edge of mel filters. In Hz, default is 0.
     :param highfreq: highest band edge of mel filters. In Hz, default is samplerate/2
     :param preemph: apply preemphasis filter with preemph as coefficient. 0 is no filter. Default is 0.97.
     :param winfunc: the analysis window to apply to each frame. By default no window is applied.
-    :returns: A numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector. 
-    """          
+    :returns: A numpy array of size (NUMFRAMES by nfilt) containing features. Each row holds 1 feature vector.
+    """
     highfreq= highfreq or samplerate/2
     signal = sigproc.preemphasis(signal,preemph)
     frames = sigproc.framesig(signal, winlen*samplerate, winstep*samplerate, winfunc)
     pspec = sigproc.powspec(frames,nfft)
     pspec = numpy.where(pspec == 0,numpy.finfo(float).eps,pspec) # if things are all zeros we get problems
-    
+
     fb = get_filterbanks(nfilt,nfft,samplerate,lowfreq,highfreq)
     feat = numpy.dot(pspec,fb.T) # compute the filterbank energies
     R = numpy.tile(numpy.linspace(1,samplerate/2,numpy.size(pspec,1)),(numpy.size(pspec,0),1))
-    
+
     return numpy.dot(pspec*R,fb.T) / feat
-    
+
 def hz2mel(hz):
     """Convert a value in Hertz to Mels
 
@@ -116,7 +151,7 @@ def hz2mel(hz):
     :returns: a value in Mels. If an array was passed in, an identical sized array is returned.
     """
     return 2595 * numpy.log10(1+hz/700.)
-    
+
 def mel2hz(mel):
     """Convert a value in Mels to Hertz
 
@@ -138,7 +173,7 @@ def get_filterbanks(nfilt=20,nfft=512,samplerate=16000,lowfreq=0,highfreq=None):
     """
     highfreq= highfreq or samplerate/2
     assert highfreq <= samplerate/2, "highfreq is greater than samplerate/2"
-    
+
     # compute points evenly spaced in mels
     lowmel = hz2mel(lowfreq)
     highmel = hz2mel(highfreq)
@@ -153,12 +188,12 @@ def get_filterbanks(nfilt=20,nfft=512,samplerate=16000,lowfreq=0,highfreq=None):
             fbank[j,i] = (i - bin[j]) / (bin[j+1]-bin[j])
         for i in range(int(bin[j+1]), int(bin[j+2])):
             fbank[j,i] = (bin[j+2]-i) / (bin[j+2]-bin[j+1])
-    return fbank                 
-    
+    return fbank
+
 def lifter(cepstra, L=22):
     """Apply a cepstral lifter the the matrix of cepstra. This has the effect of increasing the
     magnitude of the high frequency DCT coeffs.
-    
+
     :param cepstra: the matrix of mel-cepstra, will be numframes * numcep in size.
     :param L: the liftering coefficient to use. Default is 22. L <= 0 disables lifter.
     """
