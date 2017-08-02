@@ -31,6 +31,41 @@ def mfcc(signal,samplerate=16000,winlen=0.025,winstep=0.01,numcep=13,
     if appendEnergy: feat[:,0] = numpy.log(energy) # replace first cepstral coefficient with log of frame energy
     return feat
 
+def mffcc_from_folder(folderpath):
+    from scipy.io import wavfile
+    import os
+    wav_files = [f for f in os.listdir(folderpath) if f.endswith('.wav')]
+    n=len(wav_files)
+    if n < 1:
+        assert("No wav files found")
+        return
+
+    features = numpy.empty(shape=[0,13])
+    target = numpy.empty(shape=[0],dtype=int)
+    users = []
+    wav_dict = {}
+    col = 0
+    row = 0
+
+    for audio in wav_files:
+        path = folderpath+"/"+audio
+        username = audio[2:-4]
+        if username in wav_dict:
+            pass
+        else:
+            users.append(username)
+            wav_dict[username] = col
+            col += 1
+
+        fs, signal = wavfile.read(path)
+        mfcc_feat = mfcc(signal, fs)
+        features = numpy.vstack((features, mfcc_feat))
+        for row in range(featuers.shape[0]):
+            target[row] = wav_dict[username]
+            row += 1
+
+    return features, target , users
+
 def fbank(signal,samplerate=16000,winlen=0.025,winstep=0.01,
           nfilt=26,nfft=512,lowfreq=0,highfreq=None,preemph=0.97,
           winfunc=lambda x:numpy.ones((x,))):
